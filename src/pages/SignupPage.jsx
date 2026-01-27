@@ -30,11 +30,16 @@ const SignupPage = () => {
     try {
       const response = await signup(data).unwrap();
 
-      // Store token and credentials
-      if (response.token) {
+      // Store token and credentials immediately after signup
+      if (response.data?.token) {
         dispatch(setCredentials({
-          token: response.token,
-          user: response.user
+          token: response.data.token,
+          user: {
+            id: response.data.id,
+            email: response.data.email,
+            userType: response.data.userType,
+            onboardingCompleted: false, // User still needs to complete steps 2 & 3
+          }
         }));
       }
 
