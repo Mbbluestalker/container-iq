@@ -53,17 +53,25 @@ const LoginPage = () => {
         const response = await login(formData).unwrap();
 
         // Store token and user data
-        if (response.token) {
+        if (response.data?.token) {
           dispatch(setCredentials({
-            token: response.token,
-            user: response.user
+            token: response.data.token,
+            user: {
+              id: response.data.id,
+              email: response.data.email,
+              userType: response.data.userType,
+              formCompleted: response.data.formCompleted,
+              profile: response.data.profile,
+              organization: response.data.organization,
+              onboardingCompleted: response.data.formCompleted === 3, // All 3 signup steps completed
+            }
           }));
-        }
 
-        showSuccess('Login successful! Redirecting...');
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1000);
+          showSuccess('Login successful! Redirecting...');
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1000);
+        }
       } catch (error) {
         showError(error?.data?.message || 'Login failed. Please check your credentials.');
       }
