@@ -1,1 +1,54 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+@import 'leaflet/dist/leaflet.css';
+
+@theme {
+  /* Brand/Primary Colors */
+  --color-primary: #0B1E3A;
+  --color-secondary: #1CA7A0;
+  --color-primary-teal: #1CA7A0;
+  --color-primary-blue: #3C8CE2;
+  --color-primary-blue-light: #E0EAFC;
+
+  /* Text Colors */
+  --color-text-dark: #727272;
+  --color-text-medium: #727272;
+  --color-text-light: #909090;
+
+  /* Background Colors */
+  --color-bg-white: #FFFFFF;
+  --color-bg-light: #C4CBFD;
+
+  /* Status Colors */
+  --color-status-success: #38D935;
+  --color-status-success-alt: #25C123;
+  --color-status-warning: #EBBE35;
+  --color-status-danger: #EF5050;
+
+  /* Icon Colors */
+  --color-icon-purple: #D14DCF;
+  --color-icon-green: #25C123;
+  --color-icon-yellow: #EBBE35;
+  --color-icon-red: #EF5050;
+
+  /* Map Elements */
+  --color-map-route: #C4CBFD;
+  --color-map-background: #E0EAFC;
+
+  /* Font Family */
+  --font-family-sans: 'Manrope', sans-serif;
+
+  /* Animations */
+  --animate-slideIn: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
