@@ -34,7 +34,16 @@ export const api = createApi({
       }),
     }),
 
-    // Step 2: Primary Contact Person
+    // Step 2: Email OTP Verification
+    verifyEmail: builder.mutation({
+      query: (verificationData) => ({
+        url: '/auth/verify/email',
+        method: 'POST',
+        body: verificationData,
+      }),
+    }),
+
+    // Step 3: Primary Contact Person
     createProfile: builder.mutation({
       query: (profileData) => ({
         url: '/profile',
@@ -44,7 +53,7 @@ export const api = createApi({
       invalidatesTags: ['Profile'],
     }),
 
-    // Step 3: Organization Identity
+    // Step 4: Organization Identity
     createOrganization: builder.mutation({
       query: (organizationData) => ({
         url: '/organization',
@@ -59,6 +68,7 @@ export const api = createApi({
 export const {
   useLoginMutation,
   useSignupMutation,
+  useVerifyEmailMutation,
   useCreateProfileMutation,
   useCreateOrganizationMutation,
 } = api;

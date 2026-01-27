@@ -3,25 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
   useSignupMutation,
+  useVerifyEmailMutation,
   useCreateProfileMutation,
   useCreateOrganizationMutation
 } from '../services/api';
 import { setCredentials } from '../store/authSlice';
 import { useAlert } from '../context/AlertContext';
 import SignupStep1 from '../components/auth/SignupStep1';
-import SignupStep2 from '../components/auth/SignupStep2';
+import OTPVerification from '../components/auth/OTPVerification';
 import SignupStep3 from '../components/auth/SignupStep3';
+import SignupStep4 from '../components/auth/SignupStep4';
 import logo from '../assets/CIQ Logo 1.png';
 
 const SignupPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [signupData, setSignupData] = useState({});
+  const [userEmail, setUserEmail] = useState('');
   const [profileData, setProfileData] = useState({});
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { showSuccess, showError } = useAlert();
 
   const [signup, { isLoading: isSignupLoading }] = useSignupMutation();
+  const [verifyEmail, { isLoading: isVerifyingEmail }] = useVerifyEmailMutation();
   const [createProfile, { isLoading: isProfileLoading }] = useCreateProfileMutation();
   const [createOrganization, { isLoading: isOrganizationLoading }] = useCreateOrganizationMutation();
 
@@ -38,29 +42,29 @@ const SignupPage = () => {
             id: response.data.id,
             email: response.data.email,
             userType: response.data.userType,
-            onboardingCompleted: false, // User still needs to complete steps 2 & 3
+            onboardingCompleted: false, // User still needs to complete remaining steps
           }
         }));
       }
 
-      showSuccess('Account created successfully!');
+      showSuccess('Account created successfully! Please verify your email.');
       setSignupData(data);
+      setUserEmail(data.email);
       setCurrentStep(2);
     } catch (error) {
       showError(error?.data?.message || 'Signup failed. Please try again.');
     }
   };
 
-  // Step 2: Primary Contact Person
+  // Step 2: Email OTP Verification
   const handleStep2Next = async (data) => {
     try {
-      const response = await createProfile(data).unwrap();
+      await verifyEmail(data).unwrap();
 
-      showSuccess('Profile created successfully!');
-      setProfileData(data);
+      showSuccess('Email verified successfully!');
       setCurrentStep(3);
     } catch (error) {
-      showError(error?.data?.message || 'Failed to create profile. Please try again.');
+      showError(error?.data?.message || 'Verification failed. Please check your code and try again.');
     }
   };
 
@@ -68,8 +72,25 @@ const SignupPage = () => {
     setCurrentStep(1);
   };
 
-  // Step 3: Organization Identity
-  const handleStep3Submit = async (data) => {
+  // Step 3: Primary Contact Person
+  const handleStep3Next = async (data) => {
+    try {
+      await createProfile(data).unwrap();
+
+      showSuccess('Profile created successfully!');
+      setProfileData(data);
+      setCurrentStep(4);
+    } catch (error) {
+      showError(error?.data?.message || 'Failed to create profile. Please try again.');
+    }
+  };
+
+  const handleStep3Back = () => {
+    setCurrentStep(2);
+  };
+
+  // Step 4: Organization Identity
+  const handleStep4Submit = async (data) => {
     try {
       await createOrganization(data).unwrap();
 
@@ -82,8 +103,8 @@ const SignupPage = () => {
     }
   };
 
-  const handleStep3Back = () => {
-    setCurrentStep(2);
+  const handleStep4Back = () => {
+    setCurrentStep(3);
   };
 
   return (
@@ -160,9 +181,10 @@ const SignupPage = () => {
           <div className="mb-8">
             <div className="flex items-center mb-2">
               {[
-                { num: 1, label: 'Account Setup' },
-                { num: 2, label: 'Contact Info' },
-                { num: 3, label: 'Company Details' }
+                { num: 1, label: 'Account' },
+                { num: 2, label: 'Verify Email' },
+                { num: 3, label: 'Contact Info' },
+                { num: 4, label: 'Company' }
               ].map((step, idx) => (
                 <React.Fragment key={step.num}>
                   <div className="flex flex-col items-center">
@@ -187,8 +209,8 @@ const SignupPage = () => {
                       {step.label}
                     </p>
                   </div>
-                  {idx < 2 && (
-                    <div className={`flex-1 h-1 mx-4 rounded transition-all duration-300 ${
+                  {idx < 3 && (
+                    <div className={`flex-1 h-1 mx-2 rounded transition-all duration-300 ${
                       currentStep > step.num ? 'bg-secondary' : 'bg-gray-300'
                     }`}></div>
                   )}
@@ -208,18 +230,27 @@ const SignupPage = () => {
             )}
 
             {currentStep === 2 && (
-              <SignupStep2
+              <OTPVerification
                 onNext={handleStep2Next}
                 onBack={handleStep2Back}
-                initialData={profileData}
-                isLoading={isProfileLoading}
+                email={userEmail}
+                isLoading={isVerifyingEmail}
               />
             )}
 
             {currentStep === 3 && (
               <SignupStep3
-                onSubmit={handleStep3Submit}
+                onNext={handleStep3Next}
                 onBack={handleStep3Back}
+                initialData={profileData}
+                isLoading={isProfileLoading}
+              />
+            )}
+
+            {currentStep === 4 && (
+              <SignupStep4
+                onSubmit={handleStep4Submit}
+                onBack={handleStep4Back}
                 initialData={{}}
                 isLoading={isOrganizationLoading}
               />
