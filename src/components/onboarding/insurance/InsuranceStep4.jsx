@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useGetInsuranceDetailsQuery, useSubmitInsuranceClaimsMutation } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormSelect from '../../common/FormSelect';
 import FormCheckbox from '../../common/FormCheckbox';
+import FormTextarea from '../../common/FormTextarea';
 
 const InsuranceStep4 = ({ onNext, onBack, initialData }) => {
   const [formData, setFormData] = useState({
@@ -8,9 +11,26 @@ const InsuranceStep4 = ({ onNext, onBack, initialData }) => {
     acceptTelematicsRiskScoring: initialData?.acceptTelematicsRiskScoring || false,
     acceptAutomatedClaimsEvidence: initialData?.acceptAutomatedClaimsEvidence || false,
     apiIntegrationMode: initialData?.apiIntegrationMode || '',
+    claimContactProtocol: initialData?.claimContactProtocol || '',
   });
 
   const [errors, setErrors] = useState({});
+  const { data: insuranceData, isLoading: isFetching } = useGetInsuranceDetailsQuery();
+  const [submitInsuranceClaims, { isLoading: isSubmitting }] = useSubmitInsuranceClaimsMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Prefill form with existing data from API
+  useEffect(() => {
+    if (insuranceData?.data) {
+      setFormData({
+        claimsProcessingModel: insuranceData.data.claimsProcessModel || '',
+        acceptTelematicsRiskScoring: insuranceData.data.acceptRiskScore || false,
+        acceptAutomatedClaimsEvidence: insuranceData.data.acceptClaimsEvidence || false,
+        apiIntegrationMode: insuranceData.data.apiMode || '',
+        claimContactProtocol: insuranceData.data.claimContactProtocal || '',
+      });
+    }
+  }, [insuranceData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -34,15 +54,41 @@ const InsuranceStep4 = ({ onNext, onBack, initialData }) => {
       newErrors.apiIntegrationMode = 'Please select API integration mode';
     }
 
+    if (!formData.claimContactProtocol.trim()) {
+      newErrors.claimContactProtocol = 'Claims contact protocol is required';
+    }
+
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        // Transform form data to match API payload structure
+        const payload = {
+          claimsProcessModel: formData.claimsProcessingModel,
+          acceptRiskScore: formData.acceptTelematicsRiskScoring,
+          acceptClaimsEvidence: formData.acceptAutomatedClaimsEvidence,
+          apiMode: formData.apiIntegrationMode,
+          claimContactProtocal: formData.claimContactProtocol,
+        };
+
+        // Submit to API
+        await submitInsuranceClaims(payload).unwrap();
+
+        // Show success message
+        showSuccess('Claims and integration settings saved successfully!');
+
+        // Pass data to parent and move to next step
+        onNext(formData);
+      } catch (error) {
+        // Handle API errors
+        showError(error?.data?.message || 'Failed to save claims settings. Please try again.');
+        console.error('Insurance claims submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -115,6 +161,19 @@ const InsuranceStep4 = ({ onNext, onBack, initialData }) => {
           required
         />
 
+        {/* Claims Contact Protocol */}
+        <FormTextarea
+          label="Claims Contact Protocol"
+          id="claimContactProtocol"
+          name="claimContactProtocol"
+          value={formData.claimContactProtocol}
+          onChange={handleChange}
+          error={errors.claimContactProtocol}
+          placeholder="Example:&#10;Incident Type: Cargo Theft&#10;- ContainerIQ auto-alert triggered&#10;- Notification sent to: claims@company.com&#10;- WhatsApp Hotline: +234 XXX XXX XXXX&#10;- Acknowledgement required within 30 minutes&#10;- Surveyor appointed within 4 hours&#10;- Regulator notified within 24 hours"
+          rows={8}
+          required
+        />
+
         {formData.apiIntegrationMode === 'read_only' && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start">
@@ -154,15 +213,17 @@ const InsuranceStep4 = ({ onNext, onBack, initialData }) => {
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer"
+            disabled={isSubmitting}
+            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back
           </button>
           <button
             type="submit"
-            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+            disabled={isSubmitting || isFetching}
+            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue
+            {isFetching ? 'Loading...' : isSubmitting ? 'Saving...' : 'Continue'}
           </button>
         </div>
       </form>

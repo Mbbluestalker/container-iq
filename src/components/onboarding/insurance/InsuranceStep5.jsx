@@ -1,62 +1,105 @@
 import React, { useState } from 'react';
-import FormTextarea from '../../common/FormTextarea';
+import { useUploadFileMutation, useDeleteFileMutation } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 
 const InsuranceStep5 = ({ onSubmit, onBack, initialData, isLoading }) => {
-  const [formData, setFormData] = useState({
-    claimsContactProtocol: initialData?.claimsContactProtocol || '',
-    insuranceLicense: initialData?.insuranceLicense || null,
-    naicomApprovalLetter: initialData?.naicomApprovalLetter || null,
+  const [uploadedFiles, setUploadedFiles] = useState({
+    insuranceLicense: null, // Will store { publicId, url, originalFilename }
+    naicomApprovalLetter: null,
   });
 
   const [errors, setErrors] = useState({});
-  const [fileNames, setFileNames] = useState({
-    insuranceLicense: initialData?.insuranceLicense?.name || '',
-    naicomApprovalLetter: initialData?.naicomApprovalLetter?.name || '',
+  const [uploadingFiles, setUploadingFiles] = useState({
+    insuranceLicense: false,
+    naicomApprovalLetter: false,
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
+  const [uploadFile] = useUploadFileMutation();
+  const [deleteFile] = useDeleteFileMutation();
+  const { showSuccess, showError } = useAlert();
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
-      setFormData((prev) => ({ ...prev, [name]: files[0] }));
-      setFileNames((prev) => ({ ...prev, [name]: files[0].name }));
+      const file = files[0];
+
+      // Set uploading state
+      setUploadingFiles((prev) => ({ ...prev, [name]: true }));
+
+      // Clear any previous errors
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: '' }));
       }
+
+      try {
+        // Upload file immediately
+        const response = await uploadFile({
+          file: file,
+          folder: 'insurance-documents',
+        }).unwrap();
+
+        // Store uploaded file info
+        setUploadedFiles((prev) => ({
+          ...prev,
+          [name]: {
+            publicId: response.data.publicId,
+            url: response.data.secureUrl,
+            originalFilename: file.name,
+          },
+        }));
+
+        showSuccess(`${file.name} uploaded successfully!`);
+      } catch (error) {
+        showError(error?.data?.message || `Failed to upload ${file.name}`);
+        console.error('File upload error:', error);
+      } finally {
+        setUploadingFiles((prev) => ({ ...prev, [name]: false }));
+      }
+    }
+  };
+
+  const handleFileDelete = async (fieldName) => {
+    const fileInfo = uploadedFiles[fieldName];
+    if (!fileInfo) return;
+
+    try {
+      await deleteFile(fileInfo.publicId).unwrap();
+
+      // Clear uploaded file info
+      setUploadedFiles((prev) => ({ ...prev, [fieldName]: null }));
+
+      // Reset file input
+      const fileInput = document.getElementById(fieldName);
+      if (fileInput) fileInput.value = '';
+
+      showSuccess('File deleted successfully!');
+    } catch (error) {
+      showError(error?.data?.message || 'Failed to delete file');
+      console.error('File delete error:', error);
     }
   };
 
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.claimsContactProtocol.trim()) {
-      newErrors.claimsContactProtocol = 'Claims contact protocol is required';
-    }
-
-    if (!formData.insuranceLicense) {
+    if (!uploadedFiles.insuranceLicense) {
       newErrors.insuranceLicense = 'Insurance license document is required';
     }
 
-    if (!formData.naicomApprovalLetter) {
+    if (!uploadedFiles.naicomApprovalLetter) {
       newErrors.naicomApprovalLetter = 'NAICOM approval letter is required';
     }
 
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onSubmit(formData);
+      // Files are already uploaded, just complete onboarding
+      onSubmit(uploadedFiles);
     } else {
       setErrors(newErrors);
     }
@@ -65,65 +108,92 @@ const InsuranceStep5 = ({ onSubmit, onBack, initialData, isLoading }) => {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Documents & Claims Protocol</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Required Documents</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Upload required documents and define your claims contact protocol
+          Upload required regulatory documents to complete your onboarding
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Claims Contact Protocol */}
-        <FormTextarea
-          label="Claims Contact Protocol"
-          id="claimsContactProtocol"
-          name="claimsContactProtocol"
-          value={formData.claimsContactProtocol}
-          onChange={handleChange}
-          error={errors.claimsContactProtocol}
-          placeholder="Example:&#10;Incident Type: Cargo Theft&#10;- ContainerIQ auto-alert triggered&#10;- Notification sent to: claims@company.com&#10;- WhatsApp Hotline: +234 XXX XXX XXXX&#10;- Acknowledgement required within 30 minutes&#10;- Surveyor appointed within 4 hours&#10;- Regulator notified within 24 hours"
-          rows={8}
-          required
-        />
 
         {/* File Upload: Insurance License */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
             Insurance License <span className="text-status-danger">*</span>
           </label>
-          <div className="mt-1">
-            <input
-              type="file"
-              id="insuranceLicense"
-              name="insuranceLicense"
-              onChange={handleFileChange}
-              accept=".pdf,.jpg,.jpeg,.png"
-              className="hidden"
-            />
-            <label
-              htmlFor="insuranceLicense"
-              className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-secondary hover:bg-gray-50 transition-all"
-            >
-              <div className="text-center">
-                <svg
-                  className="mx-auto h-10 w-10 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+
+          {uploadedFiles.insuranceLicense ? (
+            <div className="border-2 border-green-200 bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <svg className="w-10 h-10 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-green-900">
+                      {uploadedFiles.insuranceLicense.originalFilename}
+                    </p>
+                    <p className="text-xs text-green-700">Uploaded successfully</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleFileDelete('insuranceLicense')}
+                  className="text-red-600 hover:text-red-800 font-medium text-sm"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <p className="mt-1 text-sm text-gray-600">
-                  {fileNames.insuranceLicense || 'Click to upload Insurance License'}
-                </p>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG up to 10MB</p>
+                  Delete
+                </button>
               </div>
-            </label>
-          </div>
+            </div>
+          ) : (
+            <div className="mt-1">
+              <input
+                type="file"
+                id="insuranceLicense"
+                name="insuranceLicense"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                disabled={uploadingFiles.insuranceLicense}
+              />
+              <label
+                htmlFor="insuranceLicense"
+                className={`flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-secondary hover:bg-gray-50 transition-all ${
+                  uploadingFiles.insuranceLicense ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <div className="text-center">
+                  {uploadingFiles.insuranceLicense ? (
+                    <>
+                      <svg className="animate-spin mx-auto h-10 w-10 text-secondary" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="mt-1 text-sm text-gray-600">Uploading...</p>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="mx-auto h-10 w-10 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="mt-1 text-sm text-gray-600">Click to upload Insurance License</p>
+                      <p className="text-xs text-gray-500">PDF, JPG, PNG up to 10MB</p>
+                    </>
+                  )}
+                </div>
+              </label>
+            </div>
+          )}
           {errors.insuranceLicense && (
             <p className="mt-1.5 text-sm text-status-danger font-medium">{errors.insuranceLicense}</p>
           )}
@@ -134,65 +204,89 @@ const InsuranceStep5 = ({ onSubmit, onBack, initialData, isLoading }) => {
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
             NAICOM Approval Letter <span className="text-status-danger">*</span>
           </label>
-          <div className="mt-1">
-            <input
-              type="file"
-              id="naicomApprovalLetter"
-              name="naicomApprovalLetter"
-              onChange={handleFileChange}
-              accept=".pdf,.jpg,.jpeg,.png"
-              className="hidden"
-            />
-            <label
-              htmlFor="naicomApprovalLetter"
-              className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-secondary hover:bg-gray-50 transition-all"
-            >
-              <div className="text-center">
-                <svg
-                  className="mx-auto h-10 w-10 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+
+          {uploadedFiles.naicomApprovalLetter ? (
+            <div className="border-2 border-green-200 bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <svg className="w-10 h-10 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-green-900">
+                      {uploadedFiles.naicomApprovalLetter.originalFilename}
+                    </p>
+                    <p className="text-xs text-green-700">Uploaded successfully</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleFileDelete('naicomApprovalLetter')}
+                  className="text-red-600 hover:text-red-800 font-medium text-sm"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <p className="mt-1 text-sm text-gray-600">
-                  {fileNames.naicomApprovalLetter || 'Click to upload NAICOM Approval Letter'}
-                </p>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG up to 10MB</p>
+                  Delete
+                </button>
               </div>
-            </label>
-          </div>
+            </div>
+          ) : (
+            <div className="mt-1">
+              <input
+                type="file"
+                id="naicomApprovalLetter"
+                name="naicomApprovalLetter"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                disabled={uploadingFiles.naicomApprovalLetter}
+              />
+              <label
+                htmlFor="naicomApprovalLetter"
+                className={`flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-secondary hover:bg-gray-50 transition-all ${
+                  uploadingFiles.naicomApprovalLetter ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <div className="text-center">
+                  {uploadingFiles.naicomApprovalLetter ? (
+                    <>
+                      <svg className="animate-spin mx-auto h-10 w-10 text-secondary" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="mt-1 text-sm text-gray-600">Uploading...</p>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="mx-auto h-10 w-10 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="mt-1 text-sm text-gray-600">Click to upload NAICOM Approval Letter</p>
+                      <p className="text-xs text-gray-500">PDF, JPG, PNG up to 10MB</p>
+                    </>
+                  )}
+                </div>
+              </label>
+            </div>
+          )}
           {errors.naicomApprovalLetter && (
             <p className="mt-1.5 text-sm text-status-danger font-medium">{errors.naicomApprovalLetter}</p>
           )}
-        </div>
-
-        {/* Info box about Claims Contact Protocol */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <div className="ml-3">
-              <h4 className="text-sm font-semibold text-blue-900">How ContainerIQ Uses This Information</h4>
-              <p className="text-sm text-blue-800 mt-1">
-                Your claims contact protocol controls alert routing, SLA timers, evidence visibility, API notifications, and regulator dashboards to ensure fast, efficient claims processing.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="flex gap-4 pt-2">
           <button
             type="button"
             onClick={onBack}
-            disabled={isLoading}
+            disabled={isLoading || uploadingFiles.insuranceLicense || uploadingFiles.naicomApprovalLetter}
             className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back

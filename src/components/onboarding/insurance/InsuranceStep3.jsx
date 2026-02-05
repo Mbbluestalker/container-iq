@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useGetInsuranceDetailsQuery, useSubmitInsurancePolicyMutation } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormMultiSelect from '../../common/FormMultiSelect';
 
 const InsuranceStep3 = ({ onNext, onBack, initialData }) => {
@@ -7,6 +9,18 @@ const InsuranceStep3 = ({ onNext, onBack, initialData }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const { data: insuranceData, isLoading: isFetching } = useGetInsuranceDetailsQuery();
+  const [submitInsurancePolicy, { isLoading: isSubmitting }] = useSubmitInsurancePolicyMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Prefill form with existing data from API
+  useEffect(() => {
+    if (insuranceData?.data?.policyTypeIssued) {
+      setFormData({
+        policyTypes: insuranceData.data.policyTypeIssued || [],
+      });
+    }
+  }, [insuranceData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,12 +40,30 @@ const InsuranceStep3 = ({ onNext, onBack, initialData }) => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        // Transform form data to match API payload structure
+        const payload = {
+          policyTypeIssued: formData.policyTypes,
+        };
+
+        // Submit to API
+        await submitInsurancePolicy(payload).unwrap();
+
+        // Show success message
+        showSuccess('Policy types saved successfully!');
+
+        // Pass data to parent and move to next step
+        onNext(formData);
+      } catch (error) {
+        // Handle API errors
+        showError(error?.data?.message || 'Failed to save policy types. Please try again.');
+        console.error('Insurance policy submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -99,15 +131,17 @@ const InsuranceStep3 = ({ onNext, onBack, initialData }) => {
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer"
+            disabled={isSubmitting}
+            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back
           </button>
           <button
             type="submit"
-            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+            disabled={isSubmitting || isFetching}
+            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue
+            {isFetching ? 'Loading...' : isSubmitting ? 'Saving...' : 'Continue'}
           </button>
         </div>
       </form>

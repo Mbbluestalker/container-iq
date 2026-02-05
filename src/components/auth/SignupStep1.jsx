@@ -83,8 +83,8 @@ const SignupStep1 = ({ onNext, initialData, isLoading }) => {
             { value: 'insurance_company', label: 'Insurance Company' },
             { value: 'shipper', label: 'Shipper (Cargo Owner)' },
             { value: 'fleet_operator', label: 'Fleet Operator' },
-            { value: 'shipping_company', label: 'Shipping Company' },
-            { value: 'terminal_operator', label: 'Terminal Operator' },
+            // { value: 'shipping_company', label: 'Shipping Company' },
+            // { value: 'terminal_operator', label: 'Terminal Operator' },
           ]}
           required
         />

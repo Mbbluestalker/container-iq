@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useGetInsuranceDetailsQuery, useSubmitInsuranceCoverageMutation } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormSelect from '../../common/FormSelect';
 import FormMultiSelect from '../../common/FormMultiSelect';
 import FormTextarea from '../../common/FormTextarea';
@@ -10,9 +12,27 @@ const InsuranceStep2 = ({ onNext, onBack, initialData }) => {
     selectedStates: initialData?.selectedStates || [],
     corridorDetails: initialData?.corridorDetails || '',
     internationalCoverage: initialData?.internationalCoverage || '',
+    otherDetails: initialData?.otherDetails || '',
   });
 
   const [errors, setErrors] = useState({});
+  const { data: insuranceData, isLoading: isFetching } = useGetInsuranceDetailsQuery();
+  const [submitInsuranceCoverage, { isLoading: isSubmitting }] = useSubmitInsuranceCoverageMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Prefill form with existing data from API
+  useEffect(() => {
+    if (insuranceData?.data) {
+      setFormData({
+        coverageGeographyType: insuranceData.data.coverageGeoType || '',
+        selectedPorts: insuranceData.data.coveragePorts || [],
+        selectedStates: insuranceData.data.coverageStateRegion || [],
+        corridorDetails: insuranceData.data.coverageCoridorDetails || '',
+        internationalCoverage: insuranceData.data.coverageInternationalDetails || '',
+        otherDetails: insuranceData.data.coverageOtherDetails || '',
+      });
+    }
+  }, [insuranceData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,12 +64,35 @@ const InsuranceStep2 = ({ onNext, onBack, initialData }) => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        // Transform form data to match API payload structure
+        const payload = {
+          coverageGeoType: formData.coverageGeographyType,
+          coveragePorts: formData.selectedPorts,
+          coverageCoridorDetails: formData.corridorDetails,
+          coverageStateRegion: formData.selectedStates,
+          coverageInternationalDetails: formData.internationalCoverage,
+          coverageOtherDetails: formData.otherDetails,
+        };
+
+        // Submit to API
+        await submitInsuranceCoverage(payload).unwrap();
+
+        // Show success message
+        showSuccess('Coverage geography details saved successfully!');
+
+        // Pass data to parent and move to next step
+        onNext(formData);
+      } catch (error) {
+        // Handle API errors
+        showError(error?.data?.message || 'Failed to save coverage details. Please try again.');
+        console.error('Insurance coverage submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -177,19 +220,33 @@ const InsuranceStep2 = ({ onNext, onBack, initialData }) => {
           </div>
         )}
 
+        {formData.coverageGeographyType === 'other' && (
+          <FormTextarea
+            label="Other Coverage Details"
+            id="otherDetails"
+            name="otherDetails"
+            value={formData.otherDetails}
+            onChange={handleChange}
+            placeholder="Please specify your coverage geography details"
+            rows={4}
+          />
+        )}
+
         <div className="flex gap-4 pt-2">
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer"
+            disabled={isSubmitting}
+            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back
           </button>
           <button
             type="submit"
-            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+            disabled={isSubmitting || isFetching}
+            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue
+            {isFetching ? 'Loading...' : isSubmitting ? 'Saving...' : 'Continue'}
           </button>
         </div>
       </form>

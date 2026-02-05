@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useGetInsuranceDetailsQuery, useSubmitInsuranceLicenseMutation } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormInput from '../../common/FormInput';
 import FormMultiSelect from '../../common/FormMultiSelect';
 
@@ -11,6 +13,21 @@ const InsuranceStep1 = ({ onNext, initialData }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const { data: insuranceData, isLoading: isFetching } = useGetInsuranceDetailsQuery();
+  const [submitInsuranceLicense, { isLoading: isSubmitting }] = useSubmitInsuranceLicenseMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Prefill form with existing data from API
+  useEffect(() => {
+    if (insuranceData?.data) {
+      setFormData({
+        insuranceLicenseNumber: insuranceData.data.license || '',
+        classOfInsurance: insuranceData.data.insuranceClasses || [],
+        reinsurancePartners: insuranceData.data.reinsurancePartner || [],
+        naicomReportingCode: insuranceData.data.naicomCode || '',
+      });
+    }
+  }, [insuranceData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,12 +55,36 @@ const InsuranceStep1 = ({ onNext, initialData }) => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        // Transform form data to match API payload structure
+        const payload = {
+          licenseNumber: formData.insuranceLicenseNumber,
+          insuranceClasses: formData.classOfInsurance,
+          reinsurancePartner: formData.reinsurancePartners,
+          naicomCode: formData.naicomReportingCode,
+        };
+
+        // Determine if this is an update (data exists) or first-time submission
+        const isUpdate = !!insuranceData?.data?.license;
+
+        // Submit to API with appropriate method
+        await submitInsuranceLicense({ data: payload, isUpdate }).unwrap();
+
+        // Show success message
+        showSuccess('License and classification details saved successfully!');
+
+        // Pass data to parent and move to next step
+        onNext(formData);
+      } catch (error) {
+        // Handle API errors
+        showError(error?.data?.message || 'Failed to save license details. Please try again.');
+        console.error('Insurance license submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -119,9 +160,10 @@ const InsuranceStep1 = ({ onNext, initialData }) => {
 
         <button
           type="submit"
-          className="w-full py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+          disabled={isSubmitting || isFetching}
+          className="w-full py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Continue
+          {isFetching ? 'Loading...' : isSubmitting ? 'Saving...' : 'Continue'}
         </button>
       </form>
     </div>

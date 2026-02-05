@@ -14,7 +14,7 @@ export const api = createApi({
       return headers;
     },
   }),
-  tagTypes: ['User', 'Profile', 'Organization'],
+  tagTypes: ['User', 'Profile', 'Organization', 'Insurance', 'Files'],
   endpoints: (builder) => ({
     // Login
     login: builder.mutation({
@@ -62,6 +62,86 @@ export const api = createApi({
       }),
       invalidatesTags: ['Organization'],
     }),
+
+    // Insurance Onboarding - Get insurance details
+    getInsuranceDetails: builder.query({
+      query: () => ({
+        url: '/insurance/me',
+        method: 'GET',
+      }),
+      providesTags: ['Insurance'],
+    }),
+
+    // Insurance Onboarding - Step 1: License & Classification
+    submitInsuranceLicense: builder.mutation({
+      query: ({ data, isUpdate }) => ({
+        url: '/insurance/license',
+        method: isUpdate ? 'PUT' : 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Insurance'],
+    }),
+
+    // Insurance Onboarding - Step 2: Coverage Geography
+    submitInsuranceCoverage: builder.mutation({
+      query: (coverageData) => ({
+        url: '/insurance/coverage',
+        method: 'PUT',
+        body: coverageData,
+      }),
+      invalidatesTags: ['Insurance'],
+    }),
+
+    // Insurance Onboarding - Step 3: Policy Types
+    submitInsurancePolicy: builder.mutation({
+      query: (policyData) => ({
+        url: '/insurance/policy',
+        method: 'PUT',
+        body: policyData,
+      }),
+      invalidatesTags: ['Insurance'],
+    }),
+
+    // Insurance Onboarding - Step 4: Claims & Integration
+    submitInsuranceClaims: builder.mutation({
+      query: (claimsData) => ({
+        url: '/insurance/claims',
+        method: 'PUT',
+        body: claimsData,
+      }),
+      invalidatesTags: ['Insurance'],
+    }),
+
+    // File Upload - Single file
+    uploadFile: builder.mutation({
+      query: ({ file, folder }) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return {
+          url: `/files/upload?folder=${folder}`,
+          method: 'POST',
+          body: formData,
+        };
+      },
+    }),
+
+    // Get user's uploaded files
+    getUserFiles: builder.query({
+      query: () => ({
+        url: '/files/me',
+        method: 'GET',
+      }),
+      providesTags: ['Files'],
+    }),
+
+    // Delete file
+    deleteFile: builder.mutation({
+      query: (publicId) => ({
+        url: `/files/${publicId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Files'],
+    }),
   }),
 });
 
@@ -71,4 +151,12 @@ export const {
   useVerifyEmailMutation,
   useCreateProfileMutation,
   useCreateOrganizationMutation,
+  useGetInsuranceDetailsQuery,
+  useSubmitInsuranceLicenseMutation,
+  useSubmitInsuranceCoverageMutation,
+  useSubmitInsurancePolicyMutation,
+  useSubmitInsuranceClaimsMutation,
+  useUploadFileMutation,
+  useGetUserFilesQuery,
+  useDeleteFileMutation,
 } = api;
