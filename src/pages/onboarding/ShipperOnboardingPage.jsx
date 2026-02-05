@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCredentials } from '../../store/authSlice';
+import { setCredentials, logout } from '../../store/authSlice';
 import { useAlert } from '../../context/AlertContext';
 import ShipperStep1 from '../../components/onboarding/shipper/ShipperStep1';
 import ShipperStep2 from '../../components/onboarding/shipper/ShipperStep2';
@@ -84,6 +84,11 @@ const ShipperOnboardingPage = () => {
     }
   };
 
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -97,6 +102,12 @@ const ShipperOnboardingPage = () => {
                 <p className="text-xs text-gray-600">Complete your profile to access the platform</p>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>

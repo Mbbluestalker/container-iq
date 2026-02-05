@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import InsuranceOnboardingPage from './pages/onboarding/InsuranceOnboardingPage';
+import ShipperOnboardingPage from './pages/onboarding/ShipperOnboardingPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 const App = () => {
@@ -22,6 +23,14 @@ const App = () => {
           element={
             <ProtectedRoute>
               <InsuranceOnboardingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/onboarding/shipper"
+          element={
+            <ProtectedRoute>
+              <ShipperOnboardingPage />
             </ProtectedRoute>
           }
         />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
   useSignupMutation,
@@ -260,9 +260,9 @@ const SignupPage = () => {
           {/* Footer */}
           <p className="text-center text-sm text-gray-600 mt-6">
             Already have an account?{' '}
-            <a href="/login" className="text-secondary font-semibold hover:underline">
+            <Link to="/login" className="text-secondary font-semibold hover:underline">
               Sign in
-            </a>
+            </Link>
           </p>
         </div>
         </div>
