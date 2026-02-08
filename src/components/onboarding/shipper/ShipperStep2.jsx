@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSubmitShipperCargoMutation, useGetShipperDetailsQuery } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormInput from '../../common/FormInput';
 import FormSelect from '../../common/FormSelect';
 import FormCheckbox from '../../common/FormCheckbox';
@@ -6,11 +8,28 @@ import FormCheckbox from '../../common/FormCheckbox';
 const ShipperStep2 = ({ onNext, onBack, initialData }) => {
   const [formData, setFormData] = useState({
     cargoInsuranceProvider: initialData?.cargoInsuranceProvider || '',
-    preferredInsuranceMode: initialData?.preferredInsuranceMode || '',
-    useContainerIQInsurers: initialData?.useContainerIQInsurers || false,
+    cargoInsuranceMode: initialData?.cargoInsuranceMode || '',
+    isUseCargoApprovedInsure: initialData?.isUseCargoApprovedInsure || false,
   });
 
   const [errors, setErrors] = useState({});
+  const [submitShipperCargo, { isLoading }] = useSubmitShipperCargoMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Fetch existing shipper data for prefilling
+  const { data: shipperData, isLoading: isLoadingShipperData } = useGetShipperDetailsQuery();
+
+  // Prefill form when data is loaded
+  useEffect(() => {
+    if (shipperData?.data) {
+      const data = shipperData.data;
+      setFormData({
+        cargoInsuranceProvider: data.cargoInsuranceProvider || '',
+        cargoInsuranceMode: data.cargoInsuranceMode || '',
+        isUseCargoApprovedInsure: data.isUseCargoApprovedInsure || false,
+      });
+    }
+  }, [shipperData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -26,19 +45,26 @@ const ShipperStep2 = ({ onNext, onBack, initialData }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.preferredInsuranceMode) {
-      newErrors.preferredInsuranceMode = 'Please select preferred insurance mode';
+    if (!formData.cargoInsuranceMode) {
+      newErrors.cargoInsuranceMode = 'Please select preferred insurance mode';
     }
 
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        await submitShipperCargo(formData).unwrap();
+        showSuccess('Cargo & insurance profile saved successfully!');
+        onNext(formData);
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to save cargo profile');
+        console.error('Shipper cargo submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -66,11 +92,11 @@ const ShipperStep2 = ({ onNext, onBack, initialData }) => {
 
         <FormSelect
           label="Preferred Insurance Mode"
-          id="preferredInsuranceMode"
-          name="preferredInsuranceMode"
-          value={formData.preferredInsuranceMode}
+          id="cargoInsuranceMode"
+          name="cargoInsuranceMode"
+          value={formData.cargoInsuranceMode}
           onChange={handleChange}
-          error={errors.preferredInsuranceMode}
+          error={errors.cargoInsuranceMode}
           options={[
             { value: '', label: 'Select insurance mode' },
             { value: 'annual_open_cover', label: 'Annual Open Cover' },
@@ -79,7 +105,7 @@ const ShipperStep2 = ({ onNext, onBack, initialData }) => {
           required
         />
 
-        {formData.preferredInsuranceMode === 'annual_open_cover' && (
+        {formData.cargoInsuranceMode === 'annual_open_cover' && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -95,7 +121,7 @@ const ShipperStep2 = ({ onNext, onBack, initialData }) => {
           </div>
         )}
 
-        {formData.preferredInsuranceMode === 'per_shipment' && (
+        {formData.cargoInsuranceMode === 'per_shipment' && (
           <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-purple-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -114,9 +140,9 @@ const ShipperStep2 = ({ onNext, onBack, initialData }) => {
         <FormCheckbox
           label="Willingness to use ContainerIQ-approved insurers"
           description="Indicates whether you are open to insuring your shipments through insurers vetted and approved on the ContainerIQ platform for faster coverage confirmation and smoother claims processing."
-          id="useContainerIQInsurers"
-          name="useContainerIQInsurers"
-          checked={formData.useContainerIQInsurers}
+          id="isUseCargoApprovedInsure"
+          name="isUseCargoApprovedInsure"
+          checked={formData.isUseCargoApprovedInsure}
           onChange={handleChange}
         />
 
@@ -124,15 +150,17 @@ const ShipperStep2 = ({ onNext, onBack, initialData }) => {
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer"
+            disabled={isLoading}
+            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back
           </button>
           <button
             type="submit"
-            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+            disabled={isLoading}
+            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue
+            {isLoading ? 'Saving...' : 'Continue'}
           </button>
         </div>
       </form>

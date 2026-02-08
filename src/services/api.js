@@ -14,7 +14,7 @@ export const api = createApi({
       return headers;
     },
   }),
-  tagTypes: ['User', 'Profile', 'Organization', 'Insurance', 'Files'],
+  tagTypes: ['User', 'Profile', 'Organization', 'Insurance', 'Files', 'Shipper'],
   endpoints: (builder) => ({
     // Login
     login: builder.mutation({
@@ -142,6 +142,55 @@ export const api = createApi({
       }),
       invalidatesTags: ['Files'],
     }),
+
+    // Shipper Onboarding - Get shipper details
+    getShipperDetails: builder.query({
+      query: () => ({
+        url: '/shipper/me',
+        method: 'GET',
+      }),
+      providesTags: ['Shipper'],
+    }),
+
+    // Shipper Onboarding - Step 1: Business Classification
+    submitShipperBusiness: builder.mutation({
+      query: ({ data, isUpdate }) => ({
+        url: '/shipper/business',
+        method: isUpdate ? 'PUT' : 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Shipper'],
+    }),
+
+    // Shipper Onboarding - Step 2: Cargo & Insurance
+    submitShipperCargo: builder.mutation({
+      query: (cargoData) => ({
+        url: '/shipper/cargo',
+        method: 'PUT',
+        body: cargoData,
+      }),
+      invalidatesTags: ['Shipper'],
+    }),
+
+    // Shipper Onboarding - Step 3: Telematics Consent
+    submitShipperConsents: builder.mutation({
+      query: (consentsData) => ({
+        url: '/shipper/consents',
+        method: 'PUT',
+        body: consentsData,
+      }),
+      invalidatesTags: ['Shipper'],
+    }),
+
+    // Shipper Onboarding - Step 4: Documents
+    submitShipperDocuments: builder.mutation({
+      query: (documentsData) => ({
+        url: '/shipper/documents',
+        method: 'PUT',
+        body: documentsData,
+      }),
+      invalidatesTags: ['Shipper'],
+    }),
   }),
 });
 
@@ -159,4 +208,9 @@ export const {
   useUploadFileMutation,
   useGetUserFilesQuery,
   useDeleteFileMutation,
+  useGetShipperDetailsQuery,
+  useSubmitShipperBusinessMutation,
+  useSubmitShipperCargoMutation,
+  useSubmitShipperConsentsMutation,
+  useSubmitShipperDocumentsMutation,
 } = api;

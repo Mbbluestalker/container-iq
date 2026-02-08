@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSubmitShipperConsentsMutation, useGetShipperDetailsQuery } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormCheckbox from '../../common/FormCheckbox';
 
 const ShipperStep3 = ({ onNext, onBack, initialData }) => {
   const [formData, setFormData] = useState({
-    consentContainerTracking: initialData?.consentContainerTracking || false,
-    consentCargoRiskScoring: initialData?.consentCargoRiskScoring || false,
-    consentDataSharing: initialData?.consentDataSharing || false,
+    isConsentContainerTrack: initialData?.isConsentContainerTrack || false,
+    isConsentRiskScore: initialData?.isConsentRiskScore || false,
+    isConsentShareData: initialData?.isConsentShareData || false,
   });
 
   const [errors, setErrors] = useState({});
+  const [submitShipperConsents, { isLoading }] = useSubmitShipperConsentsMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Fetch existing shipper data for prefilling
+  const { data: shipperData, isLoading: isLoadingShipperData } = useGetShipperDetailsQuery();
+
+  // Prefill form when data is loaded
+  useEffect(() => {
+    if (shipperData?.data) {
+      const data = shipperData.data;
+      setFormData({
+        isConsentContainerTrack: data.isConsentContainerTrack || false,
+        isConsentRiskScore: data.isConsentRiskScore || false,
+        isConsentShareData: data.isConsentShareData || false,
+      });
+    }
+  }, [shipperData]);
 
   const handleChange = (e) => {
     const { name, checked } = e.target;
@@ -21,27 +40,34 @@ const ShipperStep3 = ({ onNext, onBack, initialData }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.consentContainerTracking) {
-      newErrors.consentContainerTracking = 'Consent to container tracking is required';
+    if (!formData.isConsentContainerTrack) {
+      newErrors.isConsentContainerTrack = 'Consent to container tracking is required';
     }
 
-    if (!formData.consentCargoRiskScoring) {
-      newErrors.consentCargoRiskScoring = 'Consent to cargo risk scoring is required';
+    if (!formData.isConsentRiskScore) {
+      newErrors.isConsentRiskScore = 'Consent to cargo risk scoring is required';
     }
 
-    if (!formData.consentDataSharing) {
-      newErrors.consentDataSharing = 'Consent to data sharing is required';
+    if (!formData.isConsentShareData) {
+      newErrors.isConsentShareData = 'Consent to data sharing is required';
     }
 
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        await submitShipperConsents(formData).unwrap();
+        showSuccess('Telematics consents saved successfully!');
+        onNext(formData);
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to save consents');
+        console.error('Shipper consents submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -62,11 +88,11 @@ const ShipperStep3 = ({ onNext, onBack, initialData }) => {
             <FormCheckbox
               label="Consent to Container Tracking"
               description="Allows ContainerIQ to track the movement and status of your containers during transit using GPS and related technologies to improve security, visibility, and incident response."
-              id="consentContainerTracking"
-              name="consentContainerTracking"
-              checked={formData.consentContainerTracking}
+              id="isConsentContainerTrack"
+              name="isConsentContainerTrack"
+              checked={formData.isConsentContainerTrack}
               onChange={handleChange}
-              error={errors.consentContainerTracking}
+              error={errors.isConsentContainerTrack}
               required
             />
           </div>
@@ -75,11 +101,11 @@ const ShipperStep3 = ({ onNext, onBack, initialData }) => {
             <FormCheckbox
               label="Consent to Cargo Risk Scoring"
               description="Allows ContainerIQ to assess risk levels for your shipments based on route behaviour, security events, and movement patterns to support safer operations and insurance decisions."
-              id="consentCargoRiskScoring"
-              name="consentCargoRiskScoring"
-              checked={formData.consentCargoRiskScoring}
+              id="isConsentRiskScore"
+              name="isConsentRiskScore"
+              checked={formData.isConsentRiskScore}
               onChange={handleChange}
-              error={errors.consentCargoRiskScoring}
+              error={errors.isConsentRiskScore}
               required
             />
           </div>
@@ -88,11 +114,11 @@ const ShipperStep3 = ({ onNext, onBack, initialData }) => {
             <FormCheckbox
               label="Consent to Share Data with Insurer & Regulator"
               description="Allows relevant shipment and incident data to be securely shared with your insurer and authorised regulators strictly for compliance, claims processing, and safety oversight."
-              id="consentDataSharing"
-              name="consentDataSharing"
-              checked={formData.consentDataSharing}
+              id="isConsentShareData"
+              name="isConsentShareData"
+              checked={formData.isConsentShareData}
               onChange={handleChange}
-              error={errors.consentDataSharing}
+              error={errors.isConsentShareData}
               required
             />
           </div>
@@ -116,15 +142,17 @@ const ShipperStep3 = ({ onNext, onBack, initialData }) => {
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer"
+            disabled={isLoading}
+            className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back
           </button>
           <button
             type="submit"
-            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+            disabled={isLoading}
+            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue
+            {isLoading ? 'Saving...' : 'Continue'}
           </button>
         </div>
       </form>

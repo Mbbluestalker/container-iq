@@ -1,31 +1,32 @@
 import React, { useState } from 'react';
-import { useUploadFileMutation, useDeleteFileMutation } from '../../../services/api';
+import { useUploadFileMutation, useDeleteFileMutation, useSubmitShipperDocumentsMutation } from '../../../services/api';
 import { useAlert } from '../../../context/AlertContext';
 
-const ShipperStep4 = ({ onSubmit, onBack, initialData, isLoading }) => {
+const ShipperStep4 = ({ onSubmit, onBack, initialData }) => {
   const [uploadedFiles, setUploadedFiles] = useState({
-    cacCertificate: null,
-    importExportLicense: null,
-    customsRegistration: null,
-    nxpForm: null,
-    exportDeclaration: null,
-    shippingBill: null,
-    regulatoryPermits: null,
+    cacDocUrl: null,
+    licenseDocUrl: null,
+    customDocUrl: null,
+    nxpDocUrl: null,
+    exportDeclarationDocUrl: null,
+    shippingBillDocUrl: null,
+    regulatoryPermitDocUrl: null,
   });
 
   const [errors, setErrors] = useState({});
   const [uploadingFiles, setUploadingFiles] = useState({
-    cacCertificate: false,
-    importExportLicense: false,
-    customsRegistration: false,
-    nxpForm: false,
-    exportDeclaration: false,
-    shippingBill: false,
-    regulatoryPermits: false,
+    cacDocUrl: false,
+    licenseDocUrl: false,
+    customDocUrl: false,
+    nxpDocUrl: false,
+    exportDeclarationDocUrl: false,
+    shippingBillDocUrl: false,
+    regulatoryPermitDocUrl: false,
   });
 
   const [uploadFile] = useUploadFileMutation();
   const [deleteFile] = useDeleteFileMutation();
+  const [submitShipperDocuments, { isLoading }] = useSubmitShipperDocumentsMutation();
   const { showSuccess, showError } = useAlert();
 
   const handleFileChange = async (e) => {
@@ -86,32 +87,32 @@ const ShipperStep4 = ({ onSubmit, onBack, initialData, isLoading }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!uploadedFiles.cacCertificate) {
-      newErrors.cacCertificate = 'CAC Certificate is required';
+    if (!uploadedFiles.cacDocUrl) {
+      newErrors.cacDocUrl = 'CAC Certificate is required';
     }
 
-    if (!uploadedFiles.importExportLicense) {
-      newErrors.importExportLicense = 'Import/Export License is required';
+    if (!uploadedFiles.licenseDocUrl) {
+      newErrors.licenseDocUrl = 'Import/Export License is required';
     }
 
-    if (!uploadedFiles.customsRegistration) {
-      newErrors.customsRegistration = 'Customs Registration (PAAR/NCS ID) is required';
+    if (!uploadedFiles.customDocUrl) {
+      newErrors.customDocUrl = 'Customs Registration (PAAR/NCS ID) is required';
     }
 
-    if (!uploadedFiles.nxpForm) {
-      newErrors.nxpForm = 'NXP Form is required';
+    if (!uploadedFiles.nxpDocUrl) {
+      newErrors.nxpDocUrl = 'NXP Form is required';
     }
 
-    if (!uploadedFiles.exportDeclaration) {
-      newErrors.exportDeclaration = 'Export Declaration documents are required';
+    if (!uploadedFiles.exportDeclarationDocUrl) {
+      newErrors.exportDeclarationDocUrl = 'Export Declaration documents are required';
     }
 
-    if (!uploadedFiles.shippingBill) {
-      newErrors.shippingBill = 'Shipping Bill/Export Clearance is required';
+    if (!uploadedFiles.shippingBillDocUrl) {
+      newErrors.shippingBillDocUrl = 'Shipping Bill/Export Clearance is required';
     }
 
-    if (!uploadedFiles.regulatoryPermits) {
-      newErrors.regulatoryPermits = 'Regulatory Permits are required';
+    if (!uploadedFiles.regulatoryPermitDocUrl) {
+      newErrors.regulatoryPermitDocUrl = 'Regulatory Permits are required';
     }
 
     return newErrors;
@@ -122,7 +123,25 @@ const ShipperStep4 = ({ onSubmit, onBack, initialData, isLoading }) => {
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onSubmit(uploadedFiles);
+      try {
+        // Extract only the URLs for the API payload
+        const documentsPayload = {
+          cacDocUrl: uploadedFiles.cacDocUrl?.url || '',
+          licenseDocUrl: uploadedFiles.licenseDocUrl?.url || '',
+          customDocUrl: uploadedFiles.customDocUrl?.url || '',
+          nxpDocUrl: uploadedFiles.nxpDocUrl?.url || '',
+          exportDeclarationDocUrl: uploadedFiles.exportDeclarationDocUrl?.url || '',
+          shippingBillDocUrl: uploadedFiles.shippingBillDocUrl?.url || '',
+          regulatoryPermitDocUrl: uploadedFiles.regulatoryPermitDocUrl?.url || '',
+        };
+
+        await submitShipperDocuments(documentsPayload).unwrap();
+        showSuccess('Documents submitted successfully!');
+        onSubmit(uploadedFiles);
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to submit documents');
+        console.error('Shipper documents submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -230,13 +249,13 @@ const ShipperStep4 = ({ onSubmit, onBack, initialData, isLoading }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {renderFileUpload('cacCertificate', 'CAC Certificate')}
-        {renderFileUpload('importExportLicense', 'Import / Export License')}
-        {renderFileUpload('customsRegistration', 'Customs Registration (PAAR / NCS ID)')}
-        {renderFileUpload('nxpForm', 'NXP Form (Nigeria Export Proceeds Form)')}
-        {renderFileUpload('exportDeclaration', 'Export Declaration Documents')}
-        {renderFileUpload('shippingBill', 'Shipping Bill / Export Clearance')}
-        {renderFileUpload('regulatoryPermits', 'Relevant Regulatory Permits (e.g. NAFDAC, SON, Quarantine)')}
+        {renderFileUpload('cacDocUrl', 'CAC Certificate')}
+        {renderFileUpload('licenseDocUrl', 'Import / Export License')}
+        {renderFileUpload('customDocUrl', 'Customs Registration (PAAR / NCS ID)')}
+        {renderFileUpload('nxpDocUrl', 'NXP Form (Nigeria Export Proceeds Form)')}
+        {renderFileUpload('exportDeclarationDocUrl', 'Export Declaration Documents')}
+        {renderFileUpload('shippingBillDocUrl', 'Shipping Bill / Export Clearance')}
+        {renderFileUpload('regulatoryPermitDocUrl', 'Relevant Regulatory Permits (e.g. NAFDAC, SON, Quarantine)')}
 
         <div className="flex gap-4 pt-2">
           <button
