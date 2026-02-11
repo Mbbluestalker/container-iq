@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/CIQ Logo 1.png';
 
 const menuIcons = {
@@ -53,22 +54,68 @@ const menuIcons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
+  'Fleet Management': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M18 18.5a1.5 1.5 0 01-1.5-1.5 1.5 1.5 0 011.5-1.5 1.5 1.5 0 011.5 1.5 1.5 1.5 0 01-1.5 1.5m1.5-9l1.96 2.5H17V9.5M6 18.5A1.5 1.5 0 014.5 17 1.5 1.5 0 016 15.5 1.5 1.5 0 017.5 17 1.5 1.5 0 016 18.5M20 8h-3V4H3c-1.11 0-2 .89-2 2v11h2a3 3 0 003 3 3 3 0 003-3h6a3 3 0 003 3 3 3 0 003-3h2v-5l-3-4z"/>
+    </svg>
+  ),
+  'Drivers': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+    </svg>
+  ),
+  'Vehicles': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+      <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
+    </svg>
+  ),
 };
 
 const menuItems = [
-  { name: 'Dashboard', active: true },
-  { name: 'Marine Telematics', active: false },
-  { name: 'Inland Telematics', active: false },
-  { name: 'Scorecards', active: false },
-  { name: 'Compliance', active: false },
-  { name: 'Evidence Vault', active: false },
-  { name: "API's & Integrations", active: false },
-  { name: 'Users & Roles', active: false },
-  { name: 'Alerts', active: false },
-  { name: 'Settings', active: false },
+  { name: 'Dashboard', path: '/dashboard', hasSubmenu: false },
+  { name: 'Marine Telematics', path: '#', hasSubmenu: false },
+  { name: 'Inland Telematics', path: '#', hasSubmenu: false },
+  {
+    name: 'Fleet Management',
+    path: '#',
+    hasSubmenu: true,
+    submenu: [
+      { name: 'Drivers', path: '/fleet/drivers' },
+      { name: 'Vehicles', path: '/fleet/vehicles' }
+    ]
+  },
+  { name: 'Scorecards', path: '#', hasSubmenu: false },
+  { name: 'Compliance', path: '#', hasSubmenu: false },
+  { name: 'Evidence Vault', path: '#', hasSubmenu: false },
+  { name: "API's & Integrations", path: '#', hasSubmenu: false },
+  { name: 'Users & Roles', path: '#', hasSubmenu: false },
+  { name: 'Alerts', path: '#', hasSubmenu: false },
+  { name: 'Settings', path: '#', hasSubmenu: false },
 ];
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [expandedMenu, setExpandedMenu] = useState('Fleet Management');
+
+  const isActive = (path) => {
+    if (path === '#') return false;
+    return location.pathname === path || location.pathname.startsWith(path);
+  };
+
+  const handleMenuClick = (item) => {
+    if (item.hasSubmenu) {
+      setExpandedMenu(expandedMenu === item.name ? null : item.name);
+    } else if (item.path !== '#') {
+      navigate(item.path);
+    }
+  };
+
+  const handleSubmenuClick = (path) => {
+    navigate(path);
+  };
+
   return (
     <aside className="w-56 bg-bg-white flex flex-col h-screen fixed left-0 top-0">
       {/* Logo */}
@@ -77,19 +124,53 @@ const Sidebar = () => {
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 px-3 pt-2">
+      <nav className="flex-1 px-3 pt-2 overflow-y-auto">
         {menuItems.map((item) => (
-          <button
-            key={item.name}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors cursor-pointer ${
-              item.active
-                ? 'bg-primary-teal/10 text-primary-teal'
-                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-            }`}
-          >
-            {menuIcons[item.name]}
-            <span className="text-xs font-medium">{item.name}</span>
-          </button>
+          <div key={item.name}>
+            <button
+              onClick={() => handleMenuClick(item)}
+              className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors cursor-pointer ${
+                isActive(item.path)
+                  ? 'bg-primary-teal/10 text-primary-teal'
+                  : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {menuIcons[item.name]}
+                <span className="text-xs font-medium">{item.name}</span>
+              </div>
+              {item.hasSubmenu && (
+                <svg
+                  className={`w-3 h-3 transition-transform ${expandedMenu === item.name ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </button>
+
+            {/* Submenu */}
+            {item.hasSubmenu && expandedMenu === item.name && (
+              <div className="ml-4 mb-2">
+                {item.submenu.map((subItem) => (
+                  <button
+                    key={subItem.name}
+                    onClick={() => handleSubmenuClick(subItem.path)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-1 transition-colors cursor-pointer ${
+                      isActive(subItem.path)
+                        ? 'bg-primary-teal/10 text-primary-teal'
+                        : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                    }`}
+                  >
+                    {menuIcons[subItem.name]}
+                    <span className="text-xs font-medium">{subItem.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </nav>
 
