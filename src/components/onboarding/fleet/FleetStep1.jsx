@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSubmitFleetProfileMutation, useGetFleetDetailsQuery } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormInput from '../../common/FormInput';
 import FormSelect from '../../common/FormSelect';
 import FormMultiSelect from '../../common/FormMultiSelect';
 
 const FleetStep1 = ({ onNext, initialData }) => {
   const [formData, setFormData] = useState({
-    numberOfTrucks: initialData?.numberOfTrucks || '',
+    trucksCount: initialData?.trucksCount || '',
     truckTypes: initialData?.truckTypes || [],
-    ownershipModel: initialData?.ownershipModel || '',
-    operationalCorridors: initialData?.operationalCorridors || [],
+    truckOwnership: initialData?.truckOwnership || '',
+    truckOperationalCorridor: initialData?.truckOperationalCorridor || [],
   });
 
   const [errors, setErrors] = useState({});
+  const [submitFleetProfile, { isLoading }] = useSubmitFleetProfileMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Fetch existing fleet data for prefilling
+  const { data: fleetData, isLoading: isLoadingFleetData } = useGetFleetDetailsQuery();
+
+  // Prefill form when data is loaded
+  useEffect(() => {
+    if (fleetData?.data) {
+      const data = fleetData.data;
+      setFormData({
+        trucksCount: data.trucksCount || '',
+        truckTypes: data.truckTypes || [],
+        truckOwnership: data.truckOwnership || '',
+        truckOperationalCorridor: data.truckOperationalCorridor || [],
+      });
+    }
+  }, [fleetData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,31 +44,47 @@ const FleetStep1 = ({ onNext, initialData }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.numberOfTrucks.trim()) {
-      newErrors.numberOfTrucks = 'Number of trucks is required';
+    if (!formData.trucksCount) {
+      newErrors.trucksCount = 'Number of trucks is required';
     }
 
     if (formData.truckTypes.length === 0) {
       newErrors.truckTypes = 'Please select at least one truck type';
     }
 
-    if (!formData.ownershipModel) {
-      newErrors.ownershipModel = 'Please select ownership model';
+    if (!formData.truckOwnership) {
+      newErrors.truckOwnership = 'Please select ownership model';
     }
 
-    if (formData.operationalCorridors.length === 0) {
-      newErrors.operationalCorridors = 'Please select at least one operational corridor';
+    if (formData.truckOperationalCorridor.length === 0) {
+      newErrors.truckOperationalCorridor = 'Please select at least one operational corridor';
     }
 
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        // Check if fleet data already exists to determine POST or PUT
+        const isUpdate = !!fleetData?.data;
+
+        // Convert trucksCount to number for the API
+        const payload = {
+          ...formData,
+          trucksCount: parseInt(formData.trucksCount, 10),
+        };
+
+        await submitFleetProfile({ data: payload, isUpdate }).unwrap();
+        showSuccess('Fleet profile saved successfully!');
+        onNext(formData);
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to save fleet profile');
+        console.error('Fleet profile submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -84,6 +120,20 @@ const FleetStep1 = ({ onNext, initialData }) => {
     { value: 'other', label: 'Other' },
   ];
 
+  if (isLoadingFleetData) {
+    return (
+      <div className="w-full flex items-center justify-center py-12">
+        <div className="text-center">
+          <svg className="animate-spin h-10 w-10 text-secondary mx-auto" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-4 text-sm text-gray-600">Loading your information...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="mb-8">
@@ -96,12 +146,12 @@ const FleetStep1 = ({ onNext, initialData }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormInput
           label="Number of Trucks"
-          id="numberOfTrucks"
-          name="numberOfTrucks"
+          id="trucksCount"
+          name="trucksCount"
           type="number"
-          value={formData.numberOfTrucks}
+          value={formData.trucksCount}
           onChange={handleChange}
-          error={errors.numberOfTrucks}
+          error={errors.trucksCount}
           placeholder="e.g., 50"
           required
         />
@@ -120,11 +170,11 @@ const FleetStep1 = ({ onNext, initialData }) => {
 
         <FormSelect
           label="Ownership Model"
-          id="ownershipModel"
-          name="ownershipModel"
-          value={formData.ownershipModel}
+          id="truckOwnership"
+          name="truckOwnership"
+          value={formData.truckOwnership}
           onChange={handleChange}
-          error={errors.ownershipModel}
+          error={errors.truckOwnership}
           options={[
             { value: '', label: 'Select ownership model' },
             { value: 'owned', label: 'Owned' },
@@ -136,21 +186,22 @@ const FleetStep1 = ({ onNext, initialData }) => {
 
         <FormMultiSelect
           label="Operational Corridors"
-          id="operationalCorridors"
-          name="operationalCorridors"
+          id="truckOperationalCorridor"
+          name="truckOperationalCorridor"
           options={corridorsOptions}
-          selectedValues={formData.operationalCorridors}
+          selectedValues={formData.truckOperationalCorridor}
           onChange={handleChange}
-          error={errors.operationalCorridors}
+          error={errors.truckOperationalCorridor}
           description="Select all corridors where you operate (multi-select allowed)"
           required
         />
 
         <button
           type="submit"
-          className="w-full py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+          disabled={isLoading}
+          className="w-full py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Continue
+          {isLoading ? 'Saving...' : 'Continue'}
         </button>
       </form>
     </div>

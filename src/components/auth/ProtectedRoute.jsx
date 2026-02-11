@@ -10,8 +10,31 @@ const ProtectedRoute = ({ children, requireOnboarding = false }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Check if onboarding is completed based on user type
+  const isOnboardingComplete = (user) => {
+    if (!user) return false;
+
+    // Check if basic signup is complete (step 1-3)
+    if (user.formCompleted < 3) {
+      return false;
+    }
+
+    // Check role-specific onboarding completion
+    switch (user.userType) {
+      case 'insurance_company':
+        return user.insuranceFormCompleted === 4;
+      case 'shipper':
+        return user.shipperFormCompleted === 4;
+      case 'fleet_operator':
+        return user.fleetFormCompleted === 3;
+      // Add other user types when their onboarding is ready
+      default:
+        return true; // For user types without specific onboarding yet
+    }
+  };
+
   // Authenticated but onboarding not completed - redirect to onboarding
-  if (requireOnboarding && user && !user.onboardingCompleted) {
+  if (requireOnboarding && user && !isOnboardingComplete(user)) {
     // Redirect to role-specific onboarding
     const onboardingRoutes = {
       insurance_company: '/onboarding/insurance',
@@ -21,7 +44,7 @@ const ProtectedRoute = ({ children, requireOnboarding = false }) => {
       terminal_operator: '/onboarding/terminal',
     };
 
-    const onboardingRoute = onboardingRoutes[user.userType] || '/onboarding';
+    const onboardingRoute = onboardingRoutes[user.userType] || '/onboarding/insurance';
     return <Navigate to={onboardingRoute} replace />;
   }
 

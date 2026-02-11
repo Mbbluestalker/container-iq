@@ -1,15 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSubmitFleetDocumentsMutation, useUploadFileMutation, useDeleteFileMutation, useGetFleetDetailsQuery } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 
-const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
+const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading: externalLoading }) => {
   const [uploadedFiles, setUploadedFiles] = useState({
-    fleetInsurance: null,
-    vehicleLicenses: null,
-    driverAccreditation: null,
+    fleetInsureDocUrl: null,
+    vehicleDocUrl: null,
+    driverProofDocUrl: null,
+  });
+
+  const [uploadingFiles, setUploadingFiles] = useState({
+    fleetInsureDocUrl: false,
+    vehicleDocUrl: false,
+    driverProofDocUrl: false,
   });
 
   const [errors, setErrors] = useState({});
 
-  const handleFileChange = (e) => {
+  const [uploadFile] = useUploadFileMutation();
+  const [deleteFile] = useDeleteFileMutation();
+  const [submitFleetDocuments, { isLoading }] = useSubmitFleetDocumentsMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Fetch existing fleet data for prefilling
+  const { data: fleetData, isLoading: isLoadingFleetData } = useGetFleetDetailsQuery();
+
+  // Prefill uploaded files when data is loaded
+  useEffect(() => {
+    if (fleetData?.data) {
+      const data = fleetData.data;
+      const prefilledFiles = {};
+
+      if (data.fleetInsureDocUrl) {
+        prefilledFiles.fleetInsureDocUrl = {
+          url: data.fleetInsureDocUrl,
+          publicId: null, // We don't have publicId from GET response
+          originalFilename: 'Fleet Insurance Certificate',
+        };
+      }
+
+      if (data.vehicleDocUrl) {
+        prefilledFiles.vehicleDocUrl = {
+          url: data.vehicleDocUrl,
+          publicId: null,
+          originalFilename: 'Vehicle Licenses',
+        };
+      }
+
+      if (data.driverProofDocUrl) {
+        prefilledFiles.driverProofDocUrl = {
+          url: data.driverProofDocUrl,
+          publicId: null,
+          originalFilename: 'Driver Accreditation Proof',
+        };
+      }
+
+      if (Object.keys(prefilledFiles).length > 0) {
+        setUploadedFiles((prev) => ({ ...prev, ...prefilledFiles }));
+      }
+    }
+  }, [fleetData]);
+
+  const handleFileChange = async (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
       const file = files[0];
@@ -19,19 +71,48 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
         setErrors((prev) => ({ ...prev, [name]: '' }));
       }
 
-      // Store file info (in real implementation, this would upload to server)
-      setUploadedFiles((prev) => ({
-        ...prev,
-        [name]: {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        },
-      }));
+      // Start uploading
+      setUploadingFiles((prev) => ({ ...prev, [name]: true }));
+
+      try {
+        const response = await uploadFile({
+          file: file,
+          folder: 'fleet-documents',
+        }).unwrap();
+
+        setUploadedFiles((prev) => ({
+          ...prev,
+          [name]: {
+            publicId: response.data.publicId,
+            url: response.data.secureUrl,
+            originalFilename: file.name,
+          },
+        }));
+
+        showSuccess(`${file.name} uploaded successfully!`);
+      } catch (error) {
+        showError(error?.data?.message || `Failed to upload ${file.name}`);
+        console.error('File upload error:', error);
+      } finally {
+        setUploadingFiles((prev) => ({ ...prev, [name]: false }));
+      }
     }
   };
 
-  const handleFileRemove = (fieldName) => {
+  const handleFileRemove = async (fieldName) => {
+    const uploadedFile = uploadedFiles[fieldName];
+
+    // Delete from Cloudinary if we have a publicId
+    if (uploadedFile?.publicId) {
+      try {
+        await deleteFile(uploadedFile.publicId).unwrap();
+        showSuccess('File deleted successfully');
+      } catch (error) {
+        showError('Failed to delete file');
+        console.error('File delete error:', error);
+      }
+    }
+
     setUploadedFiles((prev) => ({ ...prev, [fieldName]: null }));
 
     // Reset file input
@@ -42,28 +123,41 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!uploadedFiles.fleetInsurance) {
-      newErrors.fleetInsurance = 'Fleet insurance certificate is required';
+    if (!uploadedFiles.fleetInsureDocUrl) {
+      newErrors.fleetInsureDocUrl = 'Fleet insurance certificate is required';
     }
 
-    if (!uploadedFiles.vehicleLicenses) {
-      newErrors.vehicleLicenses = 'Vehicle licenses are required';
+    if (!uploadedFiles.vehicleDocUrl) {
+      newErrors.vehicleDocUrl = 'Vehicle licenses are required';
     }
 
-    if (!uploadedFiles.driverAccreditation) {
-      newErrors.driverAccreditation = 'Driver accreditation proof is required';
+    if (!uploadedFiles.driverProofDocUrl) {
+      newErrors.driverProofDocUrl = 'Driver accreditation proof is required';
     }
 
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      // In real implementation, files would already be uploaded
-      onSubmit(uploadedFiles);
+      try {
+        // Extract URLs for submission
+        const documentsPayload = {
+          fleetInsureDocUrl: uploadedFiles.fleetInsureDocUrl?.url || '',
+          vehicleDocUrl: uploadedFiles.vehicleDocUrl?.url || '',
+          driverProofDocUrl: uploadedFiles.driverProofDocUrl?.url || '',
+        };
+
+        await submitFleetDocuments(documentsPayload).unwrap();
+        showSuccess('Documents submitted successfully!');
+        onSubmit(uploadedFiles);
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to submit documents');
+        console.error('Fleet documents submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
@@ -71,6 +165,7 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
 
   const renderFileUpload = (fieldName, label) => {
     const uploadedFile = uploadedFiles[fieldName];
+    const isUploading = uploadingFiles[fieldName];
     const error = errors[fieldName];
 
     return (
@@ -79,7 +174,17 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
           {label} <span className="text-status-danger">*</span>
         </label>
 
-        {uploadedFile ? (
+        {isUploading ? (
+          <div className="border-2 border-blue-200 bg-blue-50 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <svg className="animate-spin h-8 w-8 text-secondary" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="text-sm font-medium text-blue-900">Uploading...</p>
+            </div>
+          </div>
+        ) : uploadedFile ? (
           <div className="border-2 border-green-200 bg-green-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -88,10 +193,10 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
                 </svg>
                 <div>
                   <p className="text-sm font-medium text-green-900">
-                    {uploadedFile.name}
+                    {uploadedFile.originalFilename}
                   </p>
                   <p className="text-xs text-green-700">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                    File uploaded successfully
                   </p>
                 </div>
               </div>
@@ -145,6 +250,20 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
     );
   };
 
+  if (isLoadingFleetData) {
+    return (
+      <div className="w-full flex items-center justify-center py-12">
+        <div className="text-center">
+          <svg className="animate-spin h-10 w-10 text-secondary mx-auto" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-4 text-sm text-gray-600">Loading your information...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="mb-8">
@@ -155,9 +274,9 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {renderFileUpload('fleetInsurance', 'Fleet Insurance Certificate')}
-        {renderFileUpload('vehicleLicenses', 'Vehicle Licenses')}
-        {renderFileUpload('driverAccreditation', 'Driver Accreditation Proof')}
+        {renderFileUpload('fleetInsureDocUrl', 'Fleet Insurance Certificate')}
+        {renderFileUpload('vehicleDocUrl', 'Vehicle Licenses')}
+        {renderFileUpload('driverProofDocUrl', 'Driver Accreditation Proof')}
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
           <div className="flex items-start">
@@ -180,17 +299,17 @@ const FleetStep3 = ({ onSubmit, onBack, initialData, isLoading }) => {
           <button
             type="button"
             onClick={onBack}
-            disabled={isLoading}
+            disabled={isLoading || externalLoading}
             className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back
           </button>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || externalLoading}
             className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Completing Onboarding...' : 'Complete Onboarding'}
+            {(isLoading || externalLoading) ? 'Completing Onboarding...' : 'Complete Onboarding'}
           </button>
         </div>
       </form>

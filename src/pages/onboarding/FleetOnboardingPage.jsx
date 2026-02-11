@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, logout } from '../../store/authSlice';
@@ -9,7 +9,20 @@ import FleetStep3 from '../../components/onboarding/fleet/FleetStep3';
 import logo from '../../assets/CIQ Logo 1.png';
 
 const FleetOnboardingPage = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { showSuccess, showError } = useAlert();
+
+  // Initialize current step based on fleetFormCompleted
+  // fleetFormCompleted indicates how many steps are completed
+  // So if fleetFormCompleted = 2, user should be on step 3
+  const getInitialStep = () => {
+    const completed = user?.fleetFormCompleted || 0;
+    return completed + 1; // Next step after completed steps
+  };
+
+  const [currentStep, setCurrentStep] = useState(getInitialStep());
   const [onboardingData, setOnboardingData] = useState({
     step1: {},
     step2: {},
@@ -17,19 +30,32 @@ const FleetOnboardingPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const { showSuccess, showError } = useAlert();
+  // Update currentStep when user data changes (e.g., after completing a step)
+  useEffect(() => {
+    const newStep = getInitialStep();
+    if (newStep <= 3) {
+      setCurrentStep(newStep);
+    }
+  }, [user?.fleetFormCompleted]);
 
   // Step handlers
   const handleStep1Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step1: data }));
+    // Update user's fleetFormCompleted in Redux
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, fleetFormCompleted: 1 }
+    }));
     setCurrentStep(2);
   };
 
   const handleStep2Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step2: data }));
+    // Update user's fleetFormCompleted in Redux
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, fleetFormCompleted: 2 }
+    }));
     setCurrentStep(3);
   };
 
@@ -59,7 +85,7 @@ const FleetOnboardingPage = () => {
     setTimeout(() => {
       dispatch(setCredentials({
         token: localStorage.getItem('token'),
-        user: { ...user, onboardingCompleted: true }
+        user: { ...user, fleetFormCompleted: 3 }
       }));
 
       showSuccess('Fleet onboarding completed successfully!');

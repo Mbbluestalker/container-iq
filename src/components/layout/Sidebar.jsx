@@ -72,12 +72,12 @@ const Sidebar = () => {
   return (
     <aside className="w-56 bg-bg-white flex flex-col h-screen fixed left-0 top-0">
       {/* Logo */}
-      <div className="px-4 py-5 flex justify-center border-b border-gray-200">
+      <div className="px-4 py-5 flex justify-center">
         <img src={logo} alt="ContainerIQ Logo" className="w-auto h-10" />
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 px-3 pt-6">
+      <nav className="flex-1 px-3 pt-2">
         {menuItems.map((item) => (
           <button
             key={item.name}

@@ -1,19 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSubmitFleetComplianceMutation, useGetFleetDetailsQuery } from '../../../services/api';
+import { useAlert } from '../../../context/AlertContext';
 import FormInput from '../../common/FormInput';
 import FormSelect from '../../common/FormSelect';
 import FormCheckbox from '../../common/FormCheckbox';
 
 const FleetStep2 = ({ onNext, onBack, initialData }) => {
   const [formData, setFormData] = useState({
-    hasDriverVerification: initialData?.hasDriverVerification || '',
-    frscComplianceStatus: initialData?.frscComplianceStatus || '',
-    vehicleInsuranceProvider: initialData?.vehicleInsuranceProvider || '',
-    hasGpsInstalled: initialData?.hasGpsInstalled || '',
-    hasElockInstalled: initialData?.hasElockInstalled || '',
-    willingToInstallDevices: initialData?.willingToInstallDevices || false,
+    driverVerifyProcess: initialData?.driverVerifyProcess || '',
+    frscCompStatus: initialData?.frscCompStatus || '',
+    vehicleInsureProvider: initialData?.vehicleInsureProvider || '',
+    gpsInstalled: initialData?.gpsInstalled || '',
+    elockInstalled: initialData?.elockInstalled || '',
+    isWillingInstall: initialData?.isWillingInstall || false,
   });
 
   const [errors, setErrors] = useState({});
+  const [submitFleetCompliance, { isLoading }] = useSubmitFleetComplianceMutation();
+  const { showSuccess, showError } = useAlert();
+
+  // Fetch existing fleet data for prefilling
+  const { data: fleetData, isLoading: isLoadingFleetData } = useGetFleetDetailsQuery();
+
+  // Prefill form when data is loaded
+  useEffect(() => {
+    if (fleetData?.data) {
+      const data = fleetData.data;
+      setFormData({
+        driverVerifyProcess: data.driverVerifyProcess || '',
+        frscCompStatus: data.frscCompStatus || '',
+        vehicleInsureProvider: data.vehicleInsureProvider || '',
+        gpsInstalled: data.gpsInstalled || '',
+        elockInstalled: data.elockInstalled || '',
+        isWillingInstall: data.isWillingInstall || false,
+      });
+    }
+  }, [fleetData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -29,35 +51,56 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.hasDriverVerification) {
-      newErrors.hasDriverVerification = 'Please indicate driver verification process';
+    if (!formData.driverVerifyProcess) {
+      newErrors.driverVerifyProcess = 'Please indicate driver verification process';
     }
 
-    if (!formData.frscComplianceStatus) {
-      newErrors.frscComplianceStatus = 'Please select FRSC compliance status';
+    if (!formData.frscCompStatus) {
+      newErrors.frscCompStatus = 'Please select FRSC compliance status';
     }
 
-    if (!formData.hasGpsInstalled) {
-      newErrors.hasGpsInstalled = 'Please indicate GPS installation status';
+    if (!formData.gpsInstalled) {
+      newErrors.gpsInstalled = 'Please indicate GPS installation status';
     }
 
-    if (!formData.hasElockInstalled) {
-      newErrors.hasElockInstalled = 'Please indicate E-lock installation status';
+    if (!formData.elockInstalled) {
+      newErrors.elockInstalled = 'Please indicate E-lock installation status';
     }
 
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      onNext(formData);
+      try {
+        await submitFleetCompliance(formData).unwrap();
+        showSuccess('Fleet compliance saved successfully!');
+        onNext(formData);
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to save fleet compliance');
+        console.error('Fleet compliance submission error:', error);
+      }
     } else {
       setErrors(newErrors);
     }
   };
+
+  if (isLoadingFleetData) {
+    return (
+      <div className="w-full flex items-center justify-center py-12">
+        <div className="text-center">
+          <svg className="animate-spin h-10 w-10 text-secondary mx-auto" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-4 text-sm text-gray-600">Loading your information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -77,11 +120,11 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
 
           <FormSelect
             label="Driver Verification Process"
-            id="hasDriverVerification"
-            name="hasDriverVerification"
-            value={formData.hasDriverVerification}
+            id="driverVerifyProcess"
+            name="driverVerifyProcess"
+            value={formData.driverVerifyProcess}
             onChange={handleChange}
-            error={errors.hasDriverVerification}
+            error={errors.driverVerifyProcess}
             options={[
               { value: '', label: 'Select verification status' },
               { value: 'yes', label: 'Yes - We verify all drivers' },
@@ -93,11 +136,11 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
 
           <FormSelect
             label="FRSC Compliance Status"
-            id="frscComplianceStatus"
-            name="frscComplianceStatus"
-            value={formData.frscComplianceStatus}
+            id="frscCompStatus"
+            name="frscCompStatus"
+            value={formData.frscCompStatus}
             onChange={handleChange}
-            error={errors.frscComplianceStatus}
+            error={errors.frscCompStatus}
             options={[
               { value: '', label: 'Select compliance status' },
               { value: 'fully_compliant', label: 'Fully Compliant' },
@@ -110,9 +153,9 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
 
           <FormInput
             label="Vehicle Insurance Provider(s)"
-            id="vehicleInsuranceProvider"
-            name="vehicleInsuranceProvider"
-            value={formData.vehicleInsuranceProvider}
+            id="vehicleInsureProvider"
+            name="vehicleInsureProvider"
+            value={formData.vehicleInsureProvider}
             onChange={handleChange}
             placeholder="e.g., XYZ Insurance Company"
             description="Leave blank if you don't currently have vehicle insurance"
@@ -127,11 +170,11 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
 
           <FormSelect
             label="GPS Installed"
-            id="hasGpsInstalled"
-            name="hasGpsInstalled"
-            value={formData.hasGpsInstalled}
+            id="gpsInstalled"
+            name="gpsInstalled"
+            value={formData.gpsInstalled}
             onChange={handleChange}
-            error={errors.hasGpsInstalled}
+            error={errors.gpsInstalled}
             options={[
               { value: '', label: 'Select GPS status' },
               { value: 'yes_all', label: 'Yes - All vehicles' },
@@ -143,11 +186,11 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
 
           <FormSelect
             label="E-Lock Installed"
-            id="hasElockInstalled"
-            name="hasElockInstalled"
-            value={formData.hasElockInstalled}
+            id="elockInstalled"
+            name="elockInstalled"
+            value={formData.elockInstalled}
             onChange={handleChange}
-            error={errors.hasElockInstalled}
+            error={errors.elockInstalled}
             options={[
               { value: '', label: 'Select E-lock status' },
               { value: 'yes_all', label: 'Yes - All vehicles' },
@@ -161,15 +204,15 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
             <FormCheckbox
               label="Willing to install ContainerIQ-approved devices"
               description="Indicates your willingness to install GPS and E-lock devices approved by ContainerIQ for enhanced tracking, security, and compliance with platform requirements."
-              id="willingToInstallDevices"
-              name="willingToInstallDevices"
-              checked={formData.willingToInstallDevices}
+              id="isWillingInstall"
+              name="isWillingInstall"
+              checked={formData.isWillingInstall}
               onChange={handleChange}
             />
           </div>
         </div>
 
-        {formData.willingToInstallDevices && (
+        {formData.isWillingInstall && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -195,9 +238,10 @@ const FleetStep2 = ({ onNext, onBack, initialData }) => {
           </button>
           <button
             type="submit"
-            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20"
+            disabled={isLoading}
+            className="flex-1 py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all duration-200 cursor-pointer shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue
+            {isLoading ? 'Saving...' : 'Continue'}
           </button>
         </div>
       </form>

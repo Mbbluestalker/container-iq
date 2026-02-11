@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, logout } from '../../store/authSlice';
@@ -10,7 +10,18 @@ import ShipperStep4 from '../../components/onboarding/shipper/ShipperStep4';
 import logo from '../../assets/CIQ Logo 1.png';
 
 const ShipperOnboardingPage = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { showSuccess, showError } = useAlert();
+
+  // Initialize current step based on shipperFormCompleted
+  const getInitialStep = () => {
+    const completed = user?.shipperFormCompleted || 0;
+    return completed + 1;
+  };
+
+  const [currentStep, setCurrentStep] = useState(getInitialStep());
   const [onboardingData, setOnboardingData] = useState({
     step1: {},
     step2: {},
@@ -19,24 +30,39 @@ const ShipperOnboardingPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const { showSuccess, showError } = useAlert();
+  // Update currentStep when user data changes
+  useEffect(() => {
+    const newStep = getInitialStep();
+    if (newStep <= 4) {
+      setCurrentStep(newStep);
+    }
+  }, [user?.shipperFormCompleted]);
 
   // Step handlers
   const handleStep1Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step1: data }));
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, shipperFormCompleted: 1 }
+    }));
     setCurrentStep(2);
   };
 
   const handleStep2Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step2: data }));
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, shipperFormCompleted: 2 }
+    }));
     setCurrentStep(3);
   };
 
   const handleStep3Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step3: data }));
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, shipperFormCompleted: 3 }
+    }));
     setCurrentStep(4);
   };
 
@@ -66,7 +92,7 @@ const ShipperOnboardingPage = () => {
     setTimeout(() => {
       dispatch(setCredentials({
         token: localStorage.getItem('token'),
-        user: { ...user, onboardingCompleted: true }
+        user: { ...user, shipperFormCompleted: 4 }
       }));
 
       showSuccess('Shipper onboarding completed successfully!');

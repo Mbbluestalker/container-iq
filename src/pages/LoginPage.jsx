@@ -44,6 +44,40 @@ const LoginPage = () => {
     return newErrors;
   };
 
+  const getOnboardingRedirect = (userData) => {
+    const { userType, formCompleted, insuranceFormCompleted, shipperFormCompleted, fleetFormCompleted } = userData;
+
+    // Check if basic signup is incomplete (step 1-3)
+    if (formCompleted < 3) {
+      return '/signup'; // Redirect to complete basic signup
+    }
+
+    // Check role-specific onboarding completion
+    switch (userType) {
+      case 'insurance_company':
+        if (insuranceFormCompleted < 4) {
+          return '/onboarding/insurance';
+        }
+        break;
+      case 'shipper':
+        if (shipperFormCompleted < 4) {
+          return '/onboarding/shipper';
+        }
+        break;
+      case 'fleet_operator':
+        if (fleetFormCompleted < 3) {
+          return '/onboarding/fleet';
+        }
+        break;
+      // Add other user types when their onboarding is ready
+      default:
+        break;
+    }
+
+    // If all onboarding is complete, go to dashboard
+    return '/dashboard';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
@@ -54,22 +88,30 @@ const LoginPage = () => {
 
         // Store token and user data
         if (response.data?.token) {
+          const userData = {
+            id: response.data.id,
+            email: response.data.email,
+            userType: response.data.userType,
+            formCompleted: response.data.formCompleted,
+            insuranceFormCompleted: response.data.insuranceFormCompleted,
+            shipperFormCompleted: response.data.shipperFormCompleted,
+            fleetFormCompleted: response.data.fleetFormCompleted,
+            profile: response.data.profile,
+            organization: response.data.organization,
+          };
+
           dispatch(setCredentials({
             token: response.data.token,
-            user: {
-              id: response.data.id,
-              email: response.data.email,
-              userType: response.data.userType,
-              formCompleted: response.data.formCompleted,
-              profile: response.data.profile,
-              organization: response.data.organization,
-              onboardingCompleted: response.data.formCompleted === 3, // All 3 signup steps completed
-            }
+            user: userData,
           }));
 
           showSuccess('Login successful! Redirecting...');
+
+          // Determine where to redirect based on onboarding status
+          const redirectPath = getOnboardingRedirect(userData);
+
           setTimeout(() => {
-            navigate('/dashboard');
+            navigate(redirectPath);
           }, 1000);
         }
       } catch (error) {

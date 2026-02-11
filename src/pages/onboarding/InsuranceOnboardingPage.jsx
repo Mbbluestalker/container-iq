@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, logout } from '../../store/authSlice';
@@ -11,7 +11,18 @@ import InsuranceStep5 from '../../components/onboarding/insurance/InsuranceStep5
 import logo from '../../assets/CIQ Logo 1.png';
 
 const InsuranceOnboardingPage = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { showSuccess, showError } = useAlert();
+
+  // Initialize current step based on insuranceFormCompleted
+  const getInitialStep = () => {
+    const completed = user?.insuranceFormCompleted || 0;
+    return completed + 1;
+  };
+
+  const [currentStep, setCurrentStep] = useState(getInitialStep());
   const [onboardingData, setOnboardingData] = useState({
     step1: {},
     step2: {},
@@ -21,29 +32,48 @@ const InsuranceOnboardingPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const { showSuccess, showError } = useAlert();
+  // Update currentStep when user data changes
+  useEffect(() => {
+    const newStep = getInitialStep();
+    if (newStep <= 5) {
+      setCurrentStep(newStep);
+    }
+  }, [user?.insuranceFormCompleted]);
 
   // Step handlers
   const handleStep1Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step1: data }));
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, insuranceFormCompleted: 1 }
+    }));
     setCurrentStep(2);
   };
 
   const handleStep2Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step2: data }));
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, insuranceFormCompleted: 2 }
+    }));
     setCurrentStep(3);
   };
 
   const handleStep3Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step3: data }));
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, insuranceFormCompleted: 3 }
+    }));
     setCurrentStep(4);
   };
 
   const handleStep4Next = (data) => {
     setOnboardingData((prev) => ({ ...prev, step4: data }));
+    dispatch(setCredentials({
+      token: localStorage.getItem('token'),
+      user: { ...user, insuranceFormCompleted: 4 }
+    }));
     setCurrentStep(5);
   };
 

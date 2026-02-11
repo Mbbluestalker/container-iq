@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   useSignupMutation,
   useVerifyEmailMutation,
@@ -16,13 +16,28 @@ import SignupStep4 from '../components/auth/SignupStep4';
 import logo from '../assets/CIQ Logo 1.png';
 
 const SignupPage = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [signupData, setSignupData] = useState({});
-  const [userEmail, setUserEmail] = useState('');
-  const [profileData, setProfileData] = useState({});
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const { showSuccess, showError } = useAlert();
+
+  // Initialize currentStep based on user's formCompleted status
+  // formCompleted indicates how many steps are COMPLETED
+  // formCompleted: 0 -> Step 1 complete, go to Step 2 (Email verification)
+  // formCompleted: 1 -> Step 2 complete, go to Step 3 (Contact Info)
+  // formCompleted: 2 -> Step 3 complete, go to Step 4 (Organization)
+  // formCompleted: 3 -> All signup complete (shouldn't be here)
+  const getInitialStep = () => {
+    if (!user) return 1; // New signup
+    const completed = user.formCompleted || 0;
+    // Next step = completed + 1
+    return completed + 1;
+  };
+
+  const [currentStep, setCurrentStep] = useState(getInitialStep());
+  const [signupData, setSignupData] = useState({});
+  const [userEmail, setUserEmail] = useState(user?.email || '');
+  const [profileData, setProfileData] = useState({});
 
   const [signup, { isLoading: isSignupLoading }] = useSignupMutation();
   const [verifyEmail, { isLoading: isVerifyingEmail }] = useVerifyEmailMutation();
@@ -42,7 +57,12 @@ const SignupPage = () => {
             id: response.data.id,
             email: response.data.email,
             userType: response.data.userType,
-            onboardingCompleted: false, // User still needs to complete remaining steps
+            formCompleted: response.data.formCompleted || 0,
+            insuranceFormCompleted: response.data.insuranceFormCompleted || 0,
+            shipperFormCompleted: response.data.shipperFormCompleted || 0,
+            fleetFormCompleted: response.data.fleetFormCompleted || 0,
+            profile: response.data.profile,
+            organization: response.data.organization,
           }
         }));
       }
@@ -61,6 +81,12 @@ const SignupPage = () => {
     try {
       await verifyEmail(data).unwrap();
 
+      // Update formCompleted to 1 after email verification
+      dispatch(setCredentials({
+        token: localStorage.getItem('token'),
+        user: { ...user, formCompleted: 1 }
+      }));
+
       showSuccess('Email verified successfully!');
       setCurrentStep(3);
     } catch (error) {
@@ -76,6 +102,12 @@ const SignupPage = () => {
   const handleStep3Next = async (data) => {
     try {
       await createProfile(data).unwrap();
+
+      // Update formCompleted to 2 after profile creation
+      dispatch(setCredentials({
+        token: localStorage.getItem('token'),
+        user: { ...user, formCompleted: 2 }
+      }));
 
       showSuccess('Profile created successfully!');
       setProfileData(data);
@@ -94,9 +126,23 @@ const SignupPage = () => {
     try {
       await createOrganization(data).unwrap();
 
-      showSuccess('Registration completed successfully! Redirecting to dashboard...');
+      // Update formCompleted to 3 after organization creation
+      dispatch(setCredentials({
+        token: localStorage.getItem('token'),
+        user: { ...user, formCompleted: 3 }
+      }));
+
+      showSuccess('Registration completed successfully! Redirecting to onboarding...');
+
+      // Redirect to role-specific onboarding
       setTimeout(() => {
-        navigate('/dashboard');
+        const onboardingRoutes = {
+          insurance_company: '/onboarding/insurance',
+          shipper: '/onboarding/shipper',
+          fleet_operator: '/onboarding/fleet',
+        };
+        const route = onboardingRoutes[user?.userType] || '/dashboard';
+        navigate(route);
       }, 1500);
     } catch (error) {
       showError(error?.data?.message || 'Failed to create organization. Please try again.');

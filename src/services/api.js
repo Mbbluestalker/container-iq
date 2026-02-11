@@ -14,7 +14,7 @@ export const api = createApi({
       return headers;
     },
   }),
-  tagTypes: ['User', 'Profile', 'Organization', 'Insurance', 'Files', 'Shipper'],
+  tagTypes: ['User', 'Profile', 'Organization', 'Insurance', 'Files', 'Shipper', 'Fleet'],
   endpoints: (builder) => ({
     // Login
     login: builder.mutation({
@@ -191,6 +191,45 @@ export const api = createApi({
       }),
       invalidatesTags: ['Shipper'],
     }),
+
+    // Fleet Onboarding - Get fleet details
+    getFleetDetails: builder.query({
+      query: () => ({
+        url: '/fleet/me',
+        method: 'GET',
+      }),
+      providesTags: ['Fleet'],
+    }),
+
+    // Fleet Onboarding - Step 1: Fleet Profile
+    submitFleetProfile: builder.mutation({
+      query: ({ data, isUpdate }) => ({
+        url: '/fleet/profile',
+        method: isUpdate ? 'PUT' : 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Fleet'],
+    }),
+
+    // Fleet Onboarding - Step 2: Compliance
+    submitFleetCompliance: builder.mutation({
+      query: (complianceData) => ({
+        url: '/fleet/compliance',
+        method: 'PUT',
+        body: complianceData,
+      }),
+      invalidatesTags: ['Fleet'],
+    }),
+
+    // Fleet Onboarding - Step 3: Documents
+    submitFleetDocuments: builder.mutation({
+      query: (documentsData) => ({
+        url: '/fleet/documents',
+        method: 'PUT',
+        body: documentsData,
+      }),
+      invalidatesTags: ['Fleet'],
+    }),
   }),
 });
 
@@ -213,4 +252,8 @@ export const {
   useSubmitShipperCargoMutation,
   useSubmitShipperConsentsMutation,
   useSubmitShipperDocumentsMutation,
+  useGetFleetDetailsQuery,
+  useSubmitFleetProfileMutation,
+  useSubmitFleetComplianceMutation,
+  useSubmitFleetDocumentsMutation,
 } = api;
