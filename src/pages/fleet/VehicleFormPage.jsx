@@ -287,13 +287,13 @@ const VehicleFormPage = () => {
             />
             <label
               htmlFor={fieldName}
-              className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-secondary hover:bg-gray-50 transition-all"
+              className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-secondary hover:bg-secondary/5 transition-all duration-200 hover:scale-[1.01] group"
             >
               <div className="text-center">
-                <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="mx-auto h-8 w-8 text-gray-400 group-hover:text-secondary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p className="mt-1 text-sm text-gray-600">Click to upload</p>
+                <p className="mt-1 text-sm text-gray-600 group-hover:text-secondary transition-colors">Click to upload</p>
                 <p className="text-xs text-gray-500">PDF, JPG, PNG up to 10MB</p>
               </div>
             </label>
@@ -324,11 +324,12 @@ const VehicleFormPage = () => {
         </p>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="max-w-6xl mx-auto">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section 1: Vehicle Identification */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">1</span>
               Vehicle Identification
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -456,8 +457,9 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Section 2: Truck Type Configuration */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">2</span>
               Truck Type Configuration
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -547,8 +549,9 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Section 3: Ownership Details */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">3</span>
               Ownership Details
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -609,8 +612,9 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Section 4: Regulatory Compliance */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">4</span>
               Regulatory Compliance
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -669,8 +673,9 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Section 5: Safety Equipment Declarations */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">5</span>
               Safety Equipment Declarations
             </h2>
             <div className="space-y-3">
@@ -733,8 +738,9 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Section 6: Telematics Details */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">6</span>
               Telematics Details
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -845,8 +851,9 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Section 7: Operational Details */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">7</span>
               Operational Details
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -905,8 +912,9 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Section 8: Document Upload */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">8</span>
               Required Documents
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -917,21 +925,31 @@ const VehicleFormPage = () => {
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex gap-4 pt-6 border-t border-gray-200">
+          <div className="flex gap-4 pt-2">
             <button
               type="button"
               onClick={() => navigate('/fleet/vehicles')}
               disabled={isSubmitting}
-              className="flex-1 py-3 px-6 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-white to-gray-50 border-2 border-primary/30 text-primary rounded-xl hover:border-primary hover:shadow-md font-semibold transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 px-6 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-secondary to-secondary/90 text-white rounded-xl hover:from-secondary/90 hover:to-secondary font-semibold transition-all duration-200 shadow-lg shadow-secondary/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:scale-[1.02] hover:shadow-xl"
             >
-              {isSubmitting ? 'Saving...' : isEditMode ? 'Update Vehicle' : 'Add Vehicle'}
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </span>
+              ) : (
+                isEditMode ? 'Update Vehicle' : 'Add Vehicle'
+              )}
             </button>
           </div>
         </form>

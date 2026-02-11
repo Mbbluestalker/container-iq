@@ -324,13 +324,13 @@ const DriverFormPage = () => {
             />
             <label
               htmlFor={fieldName}
-              className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-secondary hover:bg-gray-50 transition-all"
+              className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-secondary hover:bg-secondary/5 transition-all duration-200 hover:scale-[1.01] group"
             >
               <div className="text-center">
-                <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="mx-auto h-8 w-8 text-gray-400 group-hover:text-secondary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p className="mt-1 text-xs text-gray-600">Click to upload</p>
+                <p className="mt-1 text-xs text-gray-600 group-hover:text-secondary transition-colors">Click to upload</p>
               </div>
             </label>
           </>
@@ -416,10 +416,13 @@ const DriverFormPage = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Identity */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Identity Information</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">1</span>
+              Basic Identity Information
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormInput
                 label="Full Name"
@@ -475,8 +478,11 @@ const DriverFormPage = () => {
           </div>
 
           {/* Government ID */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Government Identification</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">2</span>
+              Government Identification
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormInput
                 label="NIN"
@@ -530,8 +536,11 @@ const DriverFormPage = () => {
           </div>
 
           {/* Employment Information */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Employment Information</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">3</span>
+              Employment Information
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormSelect
                 label="Employment Type"
@@ -570,8 +579,11 @@ const DriverFormPage = () => {
           </div>
 
           {/* Competency */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Driver Competency & Training</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">4</span>
+              Driver Competency & Training
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormInput
                 label="Years of Driving Experience"
@@ -607,8 +619,11 @@ const DriverFormPage = () => {
           </div>
 
           {/* Compliance & Health Declarations */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Compliance & Health Declarations</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">5</span>
+              Compliance & Health Declarations
+            </h2>
             <div className="space-y-3">
               <FormCheckbox
                 label="I declare medical fitness"
@@ -641,8 +656,11 @@ const DriverFormPage = () => {
           </div>
 
           {/* Telematics */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Driver–Telematics Linkage</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">6</span>
+              Driver–Telematics Linkage
+            </h2>
             <div className="space-y-3">
               <FormCheckbox
                 label="Driver App Installed"
@@ -663,8 +681,11 @@ const DriverFormPage = () => {
           </div>
 
           {/* Document Uploads */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Supporting Documents</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">7</span>
+              Supporting Documents
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {renderFileUpload('driverLicense', "Driver's License", true)}
               {renderFileUpload('idDocument', 'ID Document (NIN/Passport)', true)}
@@ -673,20 +694,30 @@ const DriverFormPage = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 pt-2">
             <button
               type="button"
               onClick={() => navigate('/fleet/drivers')}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors cursor-pointer"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-white to-gray-50 border-2 border-primary/30 text-primary rounded-xl hover:border-primary hover:shadow-md font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 font-medium transition-colors shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-secondary to-secondary/90 text-white rounded-xl hover:from-secondary/90 hover:to-secondary font-semibold transition-all duration-200 shadow-lg shadow-secondary/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:scale-[1.02] hover:shadow-xl"
             >
-              {isLoading ? 'Saving...' : isEditMode ? 'Update Driver' : 'Create Driver'}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </span>
+              ) : (
+                isEditMode ? 'Update Driver' : 'Create Driver'
+              )}
             </button>
           </div>
         </form>

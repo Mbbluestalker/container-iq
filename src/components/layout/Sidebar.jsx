@@ -117,22 +117,22 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="w-56 bg-bg-white flex flex-col h-screen fixed left-0 top-0">
+    <aside className="w-56 bg-gradient-to-b from-primary via-primary to-[#0d2847] flex flex-col h-screen fixed left-0 top-0 shadow-xl">
       {/* Logo */}
-      <div className="px-4 py-5 flex justify-center">
+      <div className="px-4 py-5 flex justify-center border-b border-white/10">
         <img src={logo} alt="ContainerIQ Logo" className="w-auto h-10" />
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 px-3 pt-2 overflow-y-auto">
+      <nav className="flex-1 px-3 pt-4 overflow-y-auto">
         {menuItems.map((item) => (
           <div key={item.name}>
             <button
               onClick={() => handleMenuClick(item)}
-              className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors cursor-pointer ${
+              className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all duration-200 cursor-pointer ${
                 isActive(item.path)
-                  ? 'bg-primary-teal/10 text-primary-teal'
-                  : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                  ? 'bg-gradient-to-r from-secondary/30 to-secondary/20 text-white shadow-sm border border-secondary/30'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -158,10 +158,10 @@ const Sidebar = () => {
                   <button
                     key={subItem.name}
                     onClick={() => handleSubmenuClick(subItem.path)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-1 transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-1 transition-all duration-200 cursor-pointer ${
                       isActive(subItem.path)
-                        ? 'bg-primary-teal/10 text-primary-teal'
-                        : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                        ? 'bg-gradient-to-r from-secondary/30 to-secondary/20 text-white shadow-sm border border-secondary/30'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     {menuIcons[subItem.name]}
@@ -175,8 +175,8 @@ const Sidebar = () => {
       </nav>
 
       {/* Logout */}
-      <div className="p-3">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-status-danger hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
+      <div className="p-3 border-t border-white/10">
+        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-white/70 hover:bg-red-500/20 hover:text-white rounded-lg transition-all duration-200 cursor-pointer">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
