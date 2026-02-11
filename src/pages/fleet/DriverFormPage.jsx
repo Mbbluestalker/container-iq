@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { useAlert } from '../../context/AlertContext';
+import { useCreateDriverMutation, useUpdateDriverMutation, useUploadFileMutation, useGetDriverByIdQuery } from '../../services/api';
 import FormInput from '../../components/common/FormInput';
 import FormSelect from '../../components/common/FormSelect';
 import FormCheckbox from '../../components/common/FormCheckbox';
@@ -9,7 +11,17 @@ const DriverFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useAlert();
+  const { user } = useSelector((state) => state.auth);
   const isEditMode = !!id;
+
+  const [createDriver, { isLoading: isCreating }] = useCreateDriverMutation();
+  const [updateDriver, { isLoading: isUpdating }] = useUpdateDriverMutation();
+  const [uploadFile] = useUploadFileMutation();
+
+  // Fetch driver data in edit mode
+  const { data: driverData, isLoading: isFetchingDriver, isError: isFetchError } = useGetDriverByIdQuery(id, {
+    skip: !isEditMode, // Skip the query if not in edit mode
+  });
 
   const [formData, setFormData] = useState({
     // Basic Identity
@@ -55,8 +67,78 @@ const DriverFormPage = () => {
     trainingCert: null,
   });
 
+  const [uploadingFiles, setUploadingFiles] = useState({
+    driverLicense: false,
+    idDocument: false,
+    trainingCert: false,
+  });
+
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const isLoading = isCreating || isUpdating;
+
+  // Populate form when driver data is fetched in edit mode
+  useEffect(() => {
+    if (isEditMode && driverData?.data) {
+      const driver = driverData.data;
+
+      setFormData({
+        // Basic Identity
+        fullName: driver.fullName || '',
+        dateOfBirth: driver.dob || '',
+        phone: driver.phoneNumber || '',
+        email: driver.email || '',
+        address: driver.residentialAddress || '',
+        nationality: driver.nationality || 'Nigerian',
+
+        // Government ID
+        nin: driver.nin || '',
+        licenseNumber: driver.licenseNumber || '',
+        licenseClass: driver.licenseClass || '',
+        licenseIssueDate: driver.licenseIssueDate || '',
+        licenseExpiryDate: driver.licenseExpiry || '',
+
+        // Employment
+        employmentType: driver.employmentType || '',
+        driverId: driver.driverId || '',
+        dateEngaged: driver.dateEngaged || '',
+        assignedDepot: driver.assignedDepot || '',
+
+        // Competency
+        yearsExperience: driver.yearsOfExp || '',
+        hasHeavyVehicleExp: driver.heavyExp || false,
+        hasSafetyTraining: driver.safeDefTraining || false,
+        lastTrainingDate: driver.lastTrainingDate || '',
+
+        // Compliance
+        isMedicallyFit: driver.isMedFitness || false,
+        noLicenseSuspension: driver.isNotSuspended || false,
+        noTrafficConvictions: driver.isNotTrafficConvict || false,
+
+        // Telematics
+        hasDriverApp: driver.isAppInstalled || false,
+        behaviorMonitoringConsent: driver.isMonitorConsent || false,
+      });
+
+      // Populate existing file URLs
+      setUploadedFiles({
+        driverLicense: driver.driverLicenseDocUrl ? {
+          url: driver.driverLicenseDocUrl,
+          originalFilename: 'Driver License',
+          size: 0,
+        } : null,
+        idDocument: driver.identityDocUrl ? {
+          url: driver.identityDocUrl,
+          originalFilename: 'ID Document',
+          size: 0,
+        } : null,
+        trainingCert: driver.trainCertDocUrl ? {
+          url: driver.trainCertDocUrl,
+          originalFilename: 'Training Certificate',
+          size: 0,
+        } : null,
+      });
+    }
+  }, [isEditMode, driverData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -69,15 +151,39 @@ const DriverFormPage = () => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
-      setUploadedFiles((prev) => ({
-        ...prev,
-        [name]: files[0],
-      }));
+      const file = files[0];
+
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: '' }));
+      }
+
+      setUploadingFiles((prev) => ({ ...prev, [name]: true }));
+
+      try {
+        const response = await uploadFile({
+          file: file,
+          folder: 'driver-documents',
+        }).unwrap();
+
+        setUploadedFiles((prev) => ({
+          ...prev,
+          [name]: {
+            publicId: response.data.publicId,
+            url: response.data.secureUrl,
+            originalFilename: file.name,
+            size: file.size,
+          },
+        }));
+
+        showSuccess(`${file.name} uploaded successfully!`);
+      } catch (error) {
+        showError(error?.data?.message || `Failed to upload ${file.name}`);
+        console.error('File upload error:', error);
+      } finally {
+        setUploadingFiles((prev) => ({ ...prev, [name]: false }));
       }
     }
   };
@@ -111,17 +217,50 @@ const DriverFormPage = () => {
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
       try {
-        // TODO: API call to create/update driver
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Mock API call
+        // Map form data to API payload format
+        const payload = {
+          fleetId: user?.fleet?.id || '', // Fleet ID from user.fleet.id
+          fullName: formData.fullName,
+          dob: formData.dateOfBirth,
+          phoneNumber: formData.phone,
+          email: formData.email || '',
+          residentialAddress: formData.address || '',
+          nationality: formData.nationality,
+          nin: formData.nin,
+          licenseNumber: formData.licenseNumber,
+          licenseClass: formData.licenseClass,
+          licenseExpiry: formData.licenseExpiryDate,
+          employmentType: formData.employmentType,
+          driverId: formData.driverId || '',
+          assignedDepot: formData.assignedDepot || '',
+          dateEngaged: formData.dateEngaged || '',
+          yearsOfExp: formData.yearsExperience.toString(),
+          lastTrainingDate: formData.lastTrainingDate || '',
+          heavyExp: formData.hasHeavyVehicleExp,
+          safeDefTraining: formData.hasSafetyTraining,
+          isMedFitness: formData.isMedicallyFit,
+          isNotSuspended: formData.noLicenseSuspension,
+          isNotTrafficConvict: formData.noTrafficConvictions,
+          isAppInstalled: formData.hasDriverApp,
+          isMonitorConsent: formData.behaviorMonitoringConsent,
+          driverLicenseDocUrl: uploadedFiles.driverLicense?.url || '',
+          identityDocUrl: uploadedFiles.idDocument?.url || '',
+          trainCertDocUrl: uploadedFiles.trainingCert?.url || '',
+        };
 
-        showSuccess(isEditMode ? 'Driver updated successfully!' : 'Driver created successfully!');
+        if (isEditMode) {
+          await updateDriver({ id, driverData: payload }).unwrap();
+          showSuccess('Driver updated successfully!');
+        } else {
+          await createDriver(payload).unwrap();
+          showSuccess('Driver created successfully!');
+        }
+
         setTimeout(() => navigate('/fleet/drivers'), 1000);
       } catch (error) {
-        showError('Failed to save driver. Please try again.');
-      } finally {
-        setIsLoading(false);
+        showError(error?.data?.message || 'Failed to save driver. Please try again.');
+        console.error('Driver save error:', error);
       }
     } else {
       setErrors(newErrors);
@@ -131,6 +270,7 @@ const DriverFormPage = () => {
 
   const renderFileUpload = (fieldName, label, required = false) => {
     const file = uploadedFiles[fieldName];
+    const isUploading = uploadingFiles[fieldName];
     const error = errors[fieldName];
 
     return (
@@ -138,7 +278,17 @@ const DriverFormPage = () => {
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
           {label} {required && <span className="text-status-danger">*</span>}
         </label>
-        {file ? (
+        {isUploading ? (
+          <div className="border-2 border-blue-200 bg-blue-50 rounded-lg p-3">
+            <div className="flex items-center gap-3">
+              <svg className="animate-spin h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="text-sm font-medium text-blue-900">Uploading...</p>
+            </div>
+          </div>
+        ) : file ? (
           <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -146,7 +296,7 @@ const DriverFormPage = () => {
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <p className="text-sm font-medium text-green-900">{file.name}</p>
+                  <p className="text-sm font-medium text-green-900">{file.originalFilename}</p>
                   <p className="text-xs text-green-700">{(file.size / 1024).toFixed(2)} KB</p>
                 </div>
               </div>
@@ -156,7 +306,7 @@ const DriverFormPage = () => {
                   setUploadedFiles((prev) => ({ ...prev, [fieldName]: null }));
                   document.getElementById(fieldName).value = '';
                 }}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
               >
                 Remove
               </button>
@@ -190,6 +340,60 @@ const DriverFormPage = () => {
     );
   };
 
+  // Loading state while fetching driver data
+  if (isEditMode && isFetchingDriver) {
+    return (
+      <div className="p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <svg className="animate-spin h-12 w-12 text-secondary mx-auto" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="mt-4 text-sm font-medium text-gray-900">Loading driver data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state if fetching driver fails
+  if (isEditMode && isFetchError) {
+    return (
+      <div className="p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-medium text-red-900">Failed to load driver data</h3>
+                <p className="mt-1 text-sm text-red-700">The driver could not be found or there was an error loading the data.</p>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => navigate('/fleet/drivers')}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium cursor-pointer"
+              >
+                Back to Drivers
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="max-w-4xl mx-auto">
@@ -197,7 +401,7 @@ const DriverFormPage = () => {
         <div className="mb-8">
           <button
             onClick={() => navigate('/fleet/drivers')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -473,14 +677,14 @@ const DriverFormPage = () => {
             <button
               type="button"
               onClick={() => navigate('/fleet/drivers')}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 font-medium transition-colors shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 font-medium transition-colors shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isLoading ? 'Saving...' : isEditMode ? 'Update Driver' : 'Create Driver'}
             </button>

@@ -230,6 +230,44 @@ export const api = createApi({
       }),
       invalidatesTags: ['Fleet'],
     }),
+
+    // Driver Management - Get Drivers
+    getDrivers: builder.query({
+      query: (fleetId) => ({
+        url: `/drivers/fleet/${fleetId}`,
+        method: 'GET',
+      }),
+      providesTags: ['Fleet'],
+    }),
+
+    // Driver Management - Get Driver by ID
+    getDriverById: builder.query({
+      query: (id) => ({
+        url: `/drivers/${id}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, id) => [{ type: 'Fleet', id }],
+    }),
+
+    // Driver Management - Create Driver
+    createDriver: builder.mutation({
+      query: (driverData) => ({
+        url: '/drivers',
+        method: 'POST',
+        body: driverData,
+      }),
+      invalidatesTags: ['Fleet'],
+    }),
+
+    // Driver Management - Update Driver
+    updateDriver: builder.mutation({
+      query: ({ id, driverData }) => ({
+        url: `/drivers/${id}`,
+        method: 'PUT',
+        body: driverData,
+      }),
+      invalidatesTags: ['Fleet'],
+    }),
   }),
 });
 
@@ -256,4 +294,8 @@ export const {
   useSubmitFleetProfileMutation,
   useSubmitFleetComplianceMutation,
   useSubmitFleetDocumentsMutation,
+  useGetDriversQuery,
+  useGetDriverByIdQuery,
+  useCreateDriverMutation,
+  useUpdateDriverMutation,
 } = api;

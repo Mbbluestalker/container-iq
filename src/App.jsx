@@ -14,6 +14,8 @@ import DriversPage from './pages/fleet/DriversPage';
 import DriverFormPage from './pages/fleet/DriverFormPage';
 import VehiclesPage from './pages/fleet/VehiclesPage';
 import VehicleFormPage from './pages/fleet/VehicleFormPage';
+import BulkDriverUploadPage from './pages/fleet/BulkDriverUploadPage';
+import BulkVehicleUploadPage from './pages/fleet/BulkVehicleUploadPage';
 
 const App = () => {
   return (
@@ -82,6 +84,16 @@ const App = () => {
           }
         />
         <Route
+          path="/fleet/drivers/bulk-upload"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <BulkDriverUploadPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/fleet/drivers/:id"
           element={
             <ProtectedRoute requireOnboarding={true}>
@@ -107,6 +119,16 @@ const App = () => {
             <ProtectedRoute requireOnboarding={true}>
               <Layout>
                 <VehicleFormPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/fleet/vehicles/bulk-upload"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <BulkVehicleUploadPage />
               </Layout>
             </ProtectedRoute>
           }

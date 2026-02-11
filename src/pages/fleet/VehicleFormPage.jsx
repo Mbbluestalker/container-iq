@@ -269,7 +269,7 @@ const VehicleFormPage = () => {
               <button
                 type="button"
                 onClick={() => handleFileRemove(fieldName)}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
               >
                 Remove
               </button>
@@ -309,7 +309,7 @@ const VehicleFormPage = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate('/fleet/vehicles')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -922,14 +922,14 @@ const VehicleFormPage = () => {
               type="button"
               onClick={() => navigate('/fleet/vehicles')}
               disabled={isSubmitting}
-              className="flex-1 py-3 px-6 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 px-6 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 px-6 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 px-6 border border-transparent rounded-lg text-base font-semibold text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all shadow-lg shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? 'Saving...' : isEditMode ? 'Update Vehicle' : 'Add Vehicle'}
             </button>

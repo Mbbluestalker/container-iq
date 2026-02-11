@@ -98,6 +98,9 @@ const LoginPage = () => {
             fleetFormCompleted: response.data.fleetFormCompleted,
             profile: response.data.profile,
             organization: response.data.organization,
+            fleet: response.data.fleet,
+            insurance: response.data.insurance,
+            shipper: response.data.shipper,
           };
 
           dispatch(setCredentials({
