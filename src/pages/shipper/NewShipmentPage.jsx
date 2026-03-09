@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../../context/AlertContext';
 import { useSelector } from 'react-redux';
 import FormInput from '../../components/common/FormInput';
 import FormSelect from '../../components/common/FormSelect';
+import {
+  availableContainers,
+  fleetOperators,
+  availableTrucks,
+  insuranceProviders,
+  nigerianLocations,
+  approvedRoutes,
+  containerTypeInfo,
+  truckTypeInfo,
+} from '../../data/demoShipmentData';
 
 const NewShipmentPage = () => {
   const navigate = useNavigate();
@@ -13,9 +23,18 @@ const NewShipmentPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 10;
 
+  // UI State
+  const [selectedContainerIds, setSelectedContainerIds] = useState([]);
+  const [fleetSelectionMode, setFleetSelectionMode] = useState(''); // 'queue', 'preferred', 'leaderboard', 'truck_type'
+  const [selectedTruckTypes, setSelectedTruckTypes] = useState([]);
+  const [filteredTrucks, setFilteredTrucks] = useState([]);
+  const [selectedTruckId, setSelectedTruckId] = useState('');
+  const [insuranceSelectionMode, setInsuranceSelectionMode] = useState(''); // 'queue', 'preferred', 'all'
+  const [selectedInsurerId, setSelectedInsurerId] = useState('');
+
   const [formData, setFormData] = useState({
     // Section A: Shipper & Consignment Identification
-    shipperName: user?.organizationName || '',
+    shipperName: user?.organization?.legalEntityName || '',
     shipperId: user?.id || '',
     consignmentReference: '', // system-generated
     shipperInternalReference: '',
@@ -37,28 +56,33 @@ const NewShipmentPage = () => {
     // Section D: Origin, Destination & Route
     originType: '',
     originLocation: '',
+    originLocationId: '',
     destinationType: '',
     destinationLocation: '',
-    routeSelectionMethod: '',
+    destinationLocationId: '',
+    routeSelectionMethod: 'system_recommended',
     assignedRouteId: '',
 
     // Section E: Transport & Fleet Assignment
     truckAssignmentPreference: 'now',
     fleetOperatorSelection: '',
+    fleetOperatorId: '',
     truckTypeRequired: '',
     selectedTruckId: '',
     selectedDriverId: '',
 
     // Section F: Insurance & Risk Parameters
+    insuranceProviderId: '',
     insurancePolicyType: '',
     coverageScope: '',
     coverageLimit: '',
     deductible: '',
+    calculatedPremium: 0,
 
     // Section G: Compliance & Regulatory Data
     paarNcsId: '',
     customsStatus: '',
-    hazardDeclaration: false,
+    hazardDeclaration: 'no',
 
     // Section H: Telematics & Data Consents
     consentContainerTracking: false,
@@ -76,12 +100,53 @@ const NewShipmentPage = () => {
     digitalSignature: '',
   });
 
-  const [containerForm, setContainerForm] = useState({
-    containerNumber: '',
-    containerSize: '',
-    containerType: '',
-    sealNumber: '',
-  });
+  // Auto-populate digital signature
+  useEffect(() => {
+    if (user?.profile) {
+      const fullName = `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim();
+      setFormData(prev => ({ ...prev, digitalSignature: fullName }));
+    }
+  }, [user]);
+
+  // Auto-link route when origin and destination are selected
+  useEffect(() => {
+    if (formData.originLocationId && formData.destinationLocationId) {
+      const matchedRoute = approvedRoutes.find(
+        route =>
+          route.origin.id === formData.originLocationId &&
+          route.destination.id === formData.destinationLocationId
+      );
+      if (matchedRoute) {
+        setFormData(prev => ({
+          ...prev,
+          assignedRouteId: matchedRoute.id,
+        }));
+      }
+    }
+  }, [formData.originLocationId, formData.destinationLocationId]);
+
+  // Filter trucks by selected types
+  useEffect(() => {
+    if (selectedTruckTypes.length > 0) {
+      const filtered = availableTrucks.filter(truck =>
+        selectedTruckTypes.includes(truck.type)
+      );
+      setFilteredTrucks(filtered);
+    } else {
+      setFilteredTrucks([]);
+    }
+  }, [selectedTruckTypes]);
+
+  // Calculate insurance premium
+  useEffect(() => {
+    if (formData.cargoValue && selectedInsurerId) {
+      const insurer = insuranceProviders.find(ins => ins.id === selectedInsurerId);
+      if (insurer) {
+        const premium = (parseFloat(formData.cargoValue) * insurer.basePremiumRate) / 100;
+        setFormData(prev => ({ ...prev, calculatedPremium: premium }));
+      }
+    }
+  }, [formData.cargoValue, selectedInsurerId]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -91,66 +156,70 @@ const NewShipmentPage = () => {
     }));
   };
 
-  const handleContainerChange = (e) => {
-    const { name, value } = e.target;
-    setContainerForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const addContainer = () => {
-    if (!containerForm.containerNumber || !containerForm.containerSize || !containerForm.containerType) {
-      showError('Please fill in all required container fields');
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      containers: [...prev.containers, { ...containerForm, id: Date.now() }],
-    }));
-
-    setContainerForm({
-      containerNumber: '',
-      containerSize: '',
-      containerType: '',
-      sealNumber: '',
+  // Container selection
+  const toggleContainerSelection = (containerId) => {
+    setSelectedContainerIds(prev => {
+      if (prev.includes(containerId)) {
+        return prev.filter(id => id !== containerId);
+      } else {
+        return [...prev, containerId];
+      }
     });
-    showSuccess('Container added successfully');
   };
 
-  const removeContainer = (id) => {
-    setFormData((prev) => ({
-      ...prev,
-      containers: prev.containers.filter((c) => c.id !== id),
-    }));
-    showSuccess('Container removed');
+  const confirmContainerSelection = () => {
+    const selectedContainers = availableContainers.filter(c =>
+      selectedContainerIds.includes(c.id)
+    );
+    setFormData(prev => ({ ...prev, containers: selectedContainers }));
+    showSuccess(`${selectedContainers.length} container(s) added to shipment`);
+  };
+
+  // Truck type checkbox handler
+  const handleTruckTypeToggle = (type) => {
+    setSelectedTruckTypes(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(t => t !== type);
+      } else {
+        return [...prev, type];
+      }
+    });
+  };
+
+  // Select truck
+  const selectTruck = (truckId) => {
+    const truck = availableTrucks.find(t => t.id === truckId);
+    if (truck) {
+      setSelectedTruckId(truckId);
+      setFormData(prev => ({
+        ...prev,
+        selectedTruckId: truckId,
+        selectedDriverId: truck.assignedDriver.id,
+        fleetOperatorId: truck.fleetOperatorId,
+        fleetOperatorSelection: truck.fleetOperator,
+      }));
+      showSuccess(`Truck ${truck.plateNumber} selected`);
+    }
+  };
+
+  // Select insurer
+  const selectInsurer = (insurerId) => {
+    const insurer = insuranceProviders.find(ins => ins.id === insurerId);
+    if (insurer) {
+      setSelectedInsurerId(insurerId);
+      setFormData(prev => ({
+        ...prev,
+        insuranceProviderId: insurerId,
+      }));
+      showSuccess(`${insurer.name} selected`);
+    }
   };
 
   const nextStep = () => {
-    // Validation for each step
-    if (currentStep === 1) {
-      if (!formData.shipperInternalReference) {
-        showError('Please provide an internal reference');
-        return;
-      }
-    } else if (currentStep === 2) {
-      if (!formData.cargoDescription || !formData.cargoCategory || !formData.cargoWeight || !formData.cargoValue) {
-        showError('Please fill in all required cargo details');
-        return;
-      }
-    } else if (currentStep === 3) {
-      if (formData.containerAssignmentMode === 'now' && formData.containers.length === 0) {
-        showError('Please add at least one container');
-        return;
-      }
-    } else if (currentStep === 4) {
-      if (!formData.originType || !formData.originLocation || !formData.destinationType || !formData.destinationLocation) {
-        showError('Please fill in all origin and destination details');
-        return;
-      }
+    // Soft validation
+    if (currentStep === 3 && formData.containerAssignmentMode === 'now' && formData.containers.length === 0) {
+      showError('Tip: Select at least one container or choose "assign later"');
     }
-
     setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
   };
 
@@ -160,22 +229,9 @@ const NewShipmentPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Final validation
-    if (!formData.declaration) {
-      showError('Please accept the declaration to proceed');
-      return;
-    }
-
-    if (!formData.consentContainerTracking || !formData.consentCargoRiskScoring || !formData.consentShareData) {
-      showError('All telematics consents are required');
-      return;
-    }
-
     try {
-      // API call to create shipment
-      console.log('Submitting shipment:', formData);
-      showSuccess('Shipment request created successfully!');
+      console.log('📦 Shipment Request (Demo Data):', formData);
+      showSuccess('Shipment request created successfully! (Demo Mode)');
       setTimeout(() => navigate('/shipper/shipments'), 1500);
     } catch (error) {
       showError('Failed to create shipment. Please try again.');
@@ -248,21 +304,11 @@ const NewShipmentPage = () => {
         />
 
         <FormInput
-          label="Shipper ID"
-          name="shipperId"
-          value={formData.shipperId}
-          onChange={handleChange}
-          disabled
-          helperText="System-generated"
-        />
-
-        <FormInput
           label="Shipper Internal Reference"
           name="shipperInternalReference"
           value={formData.shipperInternalReference}
           onChange={handleChange}
-          placeholder="PO number, invoice number, or internal reference"
-          required
+          placeholder="PO number, invoice number, or internal reference (optional)"
         />
 
         <FormInput
@@ -379,12 +425,12 @@ const NewShipmentPage = () => {
     </div>
   );
 
-  // Section C: Container Information
+  // Section C: Container Selection (REDESIGNED)
   const renderSectionC = () => (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Container Information</h2>
-        <p className="text-sm text-gray-600">Assign containers to this shipment</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Container Selection</h2>
+        <p className="text-sm text-gray-600">Select containers from available inventory</p>
       </div>
 
       <div className="bg-gray-50 p-4 rounded-xl">
@@ -401,7 +447,7 @@ const NewShipmentPage = () => {
               onChange={handleChange}
               className="w-4 h-4 text-secondary focus:ring-secondary cursor-pointer"
             />
-            <span className="ml-2 text-sm text-gray-700">Containers assigned now</span>
+            <span className="ml-2 text-sm text-gray-700">Select containers now</span>
           </label>
           <label className="flex items-center cursor-pointer">
             <input
@@ -412,88 +458,103 @@ const NewShipmentPage = () => {
               onChange={handleChange}
               className="w-4 h-4 text-secondary focus:ring-secondary cursor-pointer"
             />
-            <span className="ml-2 text-sm text-gray-700">Containers to be assigned later</span>
+            <span className="ml-2 text-gray-700">Assign later</span>
           </label>
         </div>
       </div>
 
       {formData.containerAssignmentMode === 'now' && (
         <>
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Add Container</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <FormInput
-                label="Container Number"
-                name="containerNumber"
-                value={containerForm.containerNumber}
-                onChange={handleContainerChange}
-                placeholder="e.g., ABCD1234567"
-                required
-              />
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Containers ({availableContainers.length})</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {availableContainers.map((container) => (
+                <div
+                  key={container.id}
+                  onClick={() => toggleContainerSelection(container.id)}
+                  className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${
+                    selectedContainerIds.includes(container.id)
+                      ? 'border-secondary bg-secondary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {selectedContainerIds.includes(container.id) && (
+                    <div className="absolute top-2 right-2 bg-secondary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                      ✓
+                    </div>
+                  )}
 
-              <FormSelect
-                label="Container Size"
-                name="containerSize"
-                value={containerForm.containerSize}
-                onChange={handleContainerChange}
-                required
-                options={[
-                  { value: '', label: 'Select size' },
-                  { value: '20ft', label: '20ft' },
-                  { value: '40ft', label: '40ft' },
-                  { value: '40HC', label: '40HC (High Cube)' },
-                  { value: 'other', label: 'Other' },
-                ]}
-              />
+                  <img
+                    src={container.image}
+                    alt={container.type}
+                    className="w-full h-32 object-cover rounded-lg mb-3"
+                  />
 
-              <FormSelect
-                label="Container Type"
-                name="containerType"
-                value={containerForm.containerType}
-                onChange={handleContainerChange}
-                required
-                options={[
-                  { value: '', label: 'Select type' },
-                  { value: 'dry', label: 'Dry' },
-                  { value: 'reefer', label: 'Reefer' },
-                  { value: 'tank', label: 'Tank' },
-                  { value: 'open_top', label: 'Open-top' },
-                  { value: 'flat_rack', label: 'Flat-rack' },
-                ]}
-              />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{containerTypeInfo[container.type]?.icon || '📦'}</span>
+                      <div>
+                        <p className="font-bold text-gray-900">{container.id}</p>
+                        <p className="text-xs text-gray-500">{container.size} • {containerTypeInfo[container.type]?.name}</p>
+                      </div>
+                    </div>
 
-              <FormInput
-                label="Seal Number"
-                name="sealNumber"
-                value={containerForm.sealNumber}
-                onChange={handleContainerChange}
-                placeholder="If available (optional)"
-              />
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <p><strong>Owner:</strong> {container.owner.shippingCompany}</p>
+                      <p><strong>Terminal:</strong> {container.owner.terminal}</p>
+                      <p><strong>Location:</strong> {container.currentLocation}</p>
+                      <p className={`font-semibold ${container.detentionDays > 5 ? 'text-red-600' : 'text-green-600'}`}>
+                        <strong>Detention:</strong> {container.detentionDays} days (₦{(container.dailyDetentionRate * container.detentionDays).toLocaleString()})
+                      </p>
+                      <p><strong>Condition:</strong> {container.condition}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <button
-              type="button"
-              onClick={addContainer}
-              className="w-full px-4 py-2 bg-gradient-to-r from-secondary to-secondary/90 text-white rounded-xl hover:from-secondary/90 hover:to-secondary font-semibold transition-all duration-200 cursor-pointer"
-            >
-              Add Container
-            </button>
           </div>
+
+          {selectedContainerIds.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-green-900">{selectedContainerIds.length} container(s) selected</p>
+                  <p className="text-sm text-green-700">Click "Confirm Selection" to add to shipment</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={confirmContainerSelection}
+                  className="px-6 py-2 bg-secondary text-white rounded-xl hover:bg-secondary/90 font-semibold transition-all cursor-pointer"
+                >
+                  Confirm Selection
+                </button>
+              </div>
+            </div>
+          )}
 
           {formData.containers.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">Added Containers ({formData.containers.length})</h3>
+              <h3 className="text-lg font-bold text-gray-900">Added to Shipment ({formData.containers.length})</h3>
               {formData.containers.map((container) => (
                 <div key={container.id} className="bg-gray-50 p-4 rounded-xl flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-900">{container.containerNumber}</p>
-                    <p className="text-sm text-gray-600">
-                      {container.containerSize} • {container.containerType}
-                      {container.sealNumber && ` • Seal: ${container.sealNumber}`}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <img src={container.image} alt={container.type} className="w-16 h-16 object-cover rounded-lg" />
+                    <div>
+                      <p className="font-semibold text-gray-900">{container.id}</p>
+                      <p className="text-sm text-gray-600">
+                        {container.size} • {containerTypeInfo[container.type]?.name} • {container.owner.shippingCompany}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeContainer(container.id)}
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        containers: prev.containers.filter(c => c.id !== container.id)
+                      }));
+                      setSelectedContainerIds(prev => prev.filter(id => id !== container.id));
+                    }}
                     className="px-3 py-1 text-sm text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-all cursor-pointer"
                   >
                     Remove
@@ -507,94 +568,148 @@ const NewShipmentPage = () => {
     </div>
   );
 
-  // Section D: Origin, Destination & Route
-  const renderSectionD = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Origin, Destination & Route</h2>
-        <p className="text-sm text-gray-600">Specify pickup and delivery locations</p>
+  // Section D: Origin, Destination & Route (WITH LOCATION DROPDOWNS)
+  const renderSectionD = () => {
+    const getLocationOptions = (type) => {
+      if (!type) return [];
+      if (type === 'seaport') return nigerianLocations.seaports;
+      if (type === 'icd') return nigerianLocations.icds;
+      if (type === 'border_post') return nigerianLocations.borderPosts;
+      return [];
+    };
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Origin, Destination & Route</h2>
+          <p className="text-sm text-gray-600">Specify pickup and delivery locations</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormSelect
+            label="Origin Type"
+            name="originType"
+            value={formData.originType}
+            onChange={handleChange}
+            required
+            options={[
+              { value: '', label: 'Select origin type' },
+              { value: 'seaport', label: 'Seaport' },
+              { value: 'icd', label: 'Inland container depot (ICD)' },
+              { value: 'warehouse_factory', label: 'Warehouse / Factory' },
+            ]}
+          />
+
+          <FormSelect
+            label="Origin Location"
+            name="originLocationId"
+            value={formData.originLocationId}
+            onChange={(e) => {
+              const location = getLocationOptions(formData.originType).find(l => l.id === e.target.value);
+              setFormData(prev => ({
+                ...prev,
+                originLocationId: e.target.value,
+                originLocation: location?.name || '',
+              }));
+            }}
+            required
+            options={[
+              { value: '', label: formData.originType ? 'Select location' : 'Select origin type first' },
+              ...getLocationOptions(formData.originType).map(loc => ({
+                value: loc.id,
+                label: `${loc.name} - ${loc.city}, ${loc.state}`
+              }))
+            ]}
+          />
+
+          <FormSelect
+            label="Destination Type"
+            name="destinationType"
+            value={formData.destinationType}
+            onChange={handleChange}
+            required
+            options={[
+              { value: '', label: 'Select destination type' },
+              { value: 'seaport', label: 'Seaport' },
+              { value: 'icd', label: 'ICD' },
+              { value: 'warehouse_factory', label: 'Warehouse / Factory' },
+              { value: 'border_post', label: 'Border post' },
+            ]}
+          />
+
+          <FormSelect
+            label="Destination Location"
+            name="destinationLocationId"
+            value={formData.destinationLocationId}
+            onChange={(e) => {
+              const location = getLocationOptions(formData.destinationType).find(l => l.id === e.target.value);
+              setFormData(prev => ({
+                ...prev,
+                destinationLocationId: e.target.value,
+                destinationLocation: location?.name || '',
+              }));
+            }}
+            required
+            options={[
+              { value: '', label: formData.destinationType ? 'Select location' : 'Select destination type first' },
+              ...getLocationOptions(formData.destinationType).map(loc => ({
+                value: loc.id,
+                label: `${loc.name} - ${loc.city}, ${loc.state}`
+              }))
+            ]}
+          />
+
+          <FormSelect
+            label="Route Selection Method"
+            name="routeSelectionMethod"
+            value={formData.routeSelectionMethod}
+            onChange={handleChange}
+            required
+            options={[
+              { value: '', label: 'Select route method' },
+              { value: 'system_recommended', label: 'System-recommended insured route' },
+              { value: 'shipper_selected', label: 'Shipper-selected approved route' },
+              { value: 'fleet_selected', label: 'Fleet-selected approved route' },
+            ]}
+          />
+
+          <FormInput
+            label="Assigned Route ID"
+            name="assignedRouteId"
+            value={formData.assignedRouteId}
+            onChange={handleChange}
+            disabled
+            helperText={formData.assignedRouteId ? "Auto-linked approved corridor" : "Route will auto-link after selecting origin and destination"}
+          />
+        </div>
+
+        {formData.assignedRouteId && approvedRoutes.find(r => r.id === formData.assignedRouteId) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <h4 className="font-semibold text-blue-900 mb-2">📍 Route Details</h4>
+            {(() => {
+              const route = approvedRoutes.find(r => r.id === formData.assignedRouteId);
+              return (
+                <div className="text-sm text-blue-800 space-y-1">
+                  <p><strong>Route:</strong> {route.name}</p>
+                  <p><strong>Distance:</strong> {route.distance} km ({route.estimatedDuration})</p>
+                  <p><strong>Risk Level:</strong> {route.riskLevel}</p>
+                  <p><strong>Max Parking Time:</strong> {route.maxParkingTime} minutes</p>
+                  <p><strong>Daytime Only:</strong> {route.requiresDaytimeOnly ? 'Yes' : 'No'}</p>
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </div>
+    );
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormSelect
-          label="Origin Type"
-          name="originType"
-          value={formData.originType}
-          onChange={handleChange}
-          required
-          options={[
-            { value: '', label: 'Select origin type' },
-            { value: 'seaport', label: 'Seaport' },
-            { value: 'icd', label: 'Inland container depot (ICD)' },
-            { value: 'warehouse_factory', label: 'Warehouse / Factory' },
-          ]}
-        />
-
-        <FormInput
-          label="Origin Location"
-          name="originLocation"
-          value={formData.originLocation}
-          onChange={handleChange}
-          placeholder="Port / ICD / Address"
-          required
-        />
-
-        <FormSelect
-          label="Destination Type"
-          name="destinationType"
-          value={formData.destinationType}
-          onChange={handleChange}
-          required
-          options={[
-            { value: '', label: 'Select destination type' },
-            { value: 'seaport', label: 'Seaport' },
-            { value: 'icd', label: 'ICD' },
-            { value: 'warehouse_factory', label: 'Warehouse / Factory' },
-            { value: 'border_post', label: 'Border post' },
-          ]}
-        />
-
-        <FormInput
-          label="Destination Location"
-          name="destinationLocation"
-          value={formData.destinationLocation}
-          onChange={handleChange}
-          placeholder="Port / ICD / Address"
-          required
-        />
-
-        <FormSelect
-          label="Route Selection Method"
-          name="routeSelectionMethod"
-          value={formData.routeSelectionMethod}
-          onChange={handleChange}
-          required
-          options={[
-            { value: '', label: 'Select route method' },
-            { value: 'system_recommended', label: 'System-recommended insured route' },
-            { value: 'shipper_selected', label: 'Shipper-selected approved route' },
-            { value: 'fleet_selected', label: 'Fleet-selected approved route' },
-          ]}
-        />
-
-        <FormInput
-          label="Assigned Route ID"
-          name="assignedRouteId"
-          value={formData.assignedRouteId}
-          onChange={handleChange}
-          placeholder="Auto-linked (optional)"
-          helperText="Approved corridor under ContainerIQ"
-        />
-      </div>
-    </div>
-  );
-
-  // Section E: Transport & Fleet Assignment
+  // Section E: Fleet/Truck Selection (COMPLETELY REDESIGNED)
   const renderSectionE = () => (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Transport & Fleet Assignment</h2>
-        <p className="text-sm text-gray-600">Select fleet operator and truck preferences</p>
+        <p className="text-sm text-gray-600">Select fleet operator and truck for this shipment</p>
       </div>
 
       <div className="bg-gray-50 p-4 rounded-xl">
@@ -627,62 +742,184 @@ const NewShipmentPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormSelect
-          label="Fleet Operator Selection"
-          name="fleetOperatorSelection"
-          value={formData.fleetOperatorSelection}
-          onChange={handleChange}
-          required
-          options={[
-            { value: '', label: 'Select fleet selection method' },
-            { value: 'preferred', label: 'Preferred fleet operator(s)' },
-            { value: 'from_queue', label: 'From the queue' },
-            { value: 'from_leaderboard', label: 'From the leaderboard' },
-            { value: 'open_request', label: 'Open request to ContainerIQ-verified fleet operators' },
-          ]}
-        />
+      {formData.truckAssignmentPreference === 'now' && (
+        <>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Select Fleet/Truck by:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setFleetSelectionMode('queue')}
+                className={`p-4 border-2 rounded-xl text-left transition-all ${
+                  fleetSelectionMode === 'queue' ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <p className="font-semibold text-gray-900">🚛 Next in Queue</p>
+                <p className="text-sm text-gray-600 mt-1">Select the next available fleet operator</p>
+              </button>
 
-        <FormSelect
-          label="Truck Type Required"
-          name="truckTypeRequired"
-          value={formData.truckTypeRequired}
-          onChange={handleChange}
-          required
-          options={[
-            { value: '', label: 'Select truck type' },
-            { value: 'flatbed', label: 'Flatbed' },
-            { value: 'skeletal', label: 'Skeletal' },
-            { value: 'tanker', label: 'Tanker' },
-            { value: 'box_curtain_side', label: 'Box / Curtain-side' },
-            { value: 'lowbed', label: 'Lowbed' },
-          ]}
-        />
+              <button
+                type="button"
+                onClick={() => setFleetSelectionMode('preferred')}
+                className={`p-4 border-2 rounded-xl text-left transition-all ${
+                  fleetSelectionMode === 'preferred' ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <p className="font-semibold text-gray-900">⭐ Preferred Fleet</p>
+                <p className="text-sm text-gray-600 mt-1">Search for your preferred fleet operator</p>
+              </button>
 
-        {formData.truckAssignmentPreference === 'now' && (
-          <>
-            <FormInput
-              label="Selected Truck ID"
-              name="selectedTruckId"
-              value={formData.selectedTruckId}
-              onChange={handleChange}
-              placeholder="Optional"
-            />
+              <button
+                type="button"
+                onClick={() => setFleetSelectionMode('leaderboard')}
+                className={`p-4 border-2 rounded-xl text-left transition-all ${
+                  fleetSelectionMode === 'leaderboard' ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <p className="font-semibold text-gray-900">🏆 Top Performers</p>
+                <p className="text-sm text-gray-600 mt-1">Choose from leaderboard (top 20)</p>
+              </button>
 
-            <FormInput
-              label="Selected Driver ID"
-              name="selectedDriverId"
-              value={formData.selectedDriverId}
-              onChange={handleChange}
-              placeholder="Optional"
-            />
-          </>
-        )}
-      </div>
+              <button
+                type="button"
+                onClick={() => setFleetSelectionMode('truck_type')}
+                className={`p-4 border-2 rounded-xl text-left transition-all ${
+                  fleetSelectionMode === 'truck_type' ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <p className="font-semibold text-gray-900">🚚 By Truck Type</p>
+                <p className="text-sm text-gray-600 mt-1">Filter by specific truck type needed</p>
+              </button>
+            </div>
+          </div>
+
+          {fleetSelectionMode === 'queue' && (
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h4 className="font-semibold text-gray-900 mb-4">Next Available Truck</h4>
+              {availableTrucks[0] && (
+                <div className="border-2 border-secondary rounded-xl p-4">
+                  <div className="flex items-start gap-4">
+                    <img src={availableTrucks[0].image} alt="Truck" className="w-24 h-24 object-cover rounded-lg" />
+                    <div className="flex-1">
+                      <p className="font-bold text-lg">{availableTrucks[0].plateNumber}</p>
+                      <p className="text-sm text-gray-600">{availableTrucks[0].manufacturer} {availableTrucks[0].model} ({availableTrucks[0].year})</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <strong>Fleet:</strong> {availableTrucks[0].fleetOperator}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Driver:</strong> {availableTrucks[0].assignedDriver.name} ({availableTrucks[0].assignedDriver.experience} yrs exp)
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Type:</strong> {truckTypeInfo[availableTrucks[0].type]?.name}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => selectTruck(availableTrucks[0].id)}
+                        className="mt-3 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all cursor-pointer"
+                      >
+                        Select This Truck
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {fleetSelectionMode === 'leaderboard' && (
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h4 className="font-semibold text-gray-900 mb-4">🏆 Top Performing Fleets</h4>
+              <div className="space-y-3">
+                {fleetOperators.slice(0, 6).map((fleet, index) => (
+                  <div key={fleet.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-2xl font-bold text-gray-400">#{index + 1}</div>
+                      <img src={fleet.logo} alt={fleet.name} className="w-12 h-12 rounded-full" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{fleet.name}</p>
+                        <p className="text-sm text-gray-600">
+                          Score: {fleet.scorecard.overall} • {fleet.scorecard.rating} • {fleet.availableTrucks} trucks available
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const fleetTrucks = availableTrucks.filter(t => t.fleetOperatorId === fleet.id);
+                          if (fleetTrucks.length > 0) {
+                            selectTruck(fleetTrucks[0].id);
+                          }
+                        }}
+                        className="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all cursor-pointer"
+                      >
+                        Select
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {fleetSelectionMode === 'truck_type' && (
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h4 className="font-semibold text-gray-900 mb-4">Filter by Truck Type</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                {Object.entries(truckTypeInfo).map(([type, info]) => (
+                  <label key={type} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedTruckTypes.includes(type)}
+                      onChange={() => handleTruckTypeToggle(type)}
+                      className="w-4 h-4 text-secondary rounded"
+                    />
+                    <span className="text-sm">
+                      {info.icon} {info.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {filteredTrucks.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">{filteredTrucks.length} trucks found</p>
+                  {filteredTrucks.map(truck => (
+                    <div key={truck.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start gap-4">
+                        <img src={truck.image} alt="Truck" className="w-20 h-20 object-cover rounded-lg" />
+                        <div className="flex-1">
+                          <p className="font-bold">{truck.plateNumber}</p>
+                          <p className="text-sm text-gray-600">{truck.manufacturer} {truck.model}</p>
+                          <p className="text-sm text-gray-600">Fleet: {truck.fleetOperator}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => selectTruck(truck.id)}
+                          className="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all cursor-pointer"
+                        >
+                          Select
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedTruckId && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <p className="font-semibold text-green-900">✓ Truck Selected</p>
+              <p className="text-sm text-green-700">
+                {availableTrucks.find(t => t.id === selectedTruckId)?.plateNumber} - {availableTrucks.find(t => t.id === selectedTruckId)?.fleetOperator}
+              </p>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 
-  // Section F: Insurance & Risk Parameters
+  // Section F: Insurance Purchase (REDESIGNED)
   const renderSectionF = () => (
     <div className="space-y-6">
       <div>
@@ -690,88 +927,192 @@ const NewShipmentPage = () => {
         <p className="text-sm text-gray-600">Select insurance coverage for this shipment</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormSelect
-          label="Insurance Policy Type"
-          name="insurancePolicyType"
-          value={formData.insurancePolicyType}
-          onChange={handleChange}
-          required
-          options={[
-            { value: '', label: 'Select policy type' },
-            { value: 'marine_cargo', label: 'Marine cargo (inland transit)' },
-            { value: 'all_risk', label: 'All-risk cargo insurance' },
-            { value: 'theft_only', label: 'Theft-only / Limited perils' },
-          ]}
-        />
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Select Insurance Provider</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <button
+            type="button"
+            onClick={() => setInsuranceSelectionMode('queue')}
+            className={`p-4 border-2 rounded-xl text-left transition-all ${
+              insuranceSelectionMode === 'queue' ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <p className="font-semibold">📋 Next in Queue</p>
+            <p className="text-sm text-gray-600 mt-1">Fastest processing</p>
+          </button>
 
-        <FormSelect
-          label="Coverage Scope"
-          name="coverageScope"
-          value={formData.coverageScope}
-          onChange={handleChange}
-          required
-          options={[
-            { value: '', label: 'Select coverage scope' },
-            { value: 'port_to_port', label: 'Port-to-port' },
-            { value: 'warehouse_to_warehouse', label: 'Warehouse-to-warehouse' },
-            { value: 'port_to_warehouse', label: 'Port-to-warehouse' },
-          ]}
-        />
+          <button
+            type="button"
+            onClick={() => setInsuranceSelectionMode('preferred')}
+            className={`p-4 border-2 rounded-xl text-left transition-all ${
+              insuranceSelectionMode === 'preferred' ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <p className="font-semibold">⭐ Preferred Insurer</p>
+            <p className="text-sm text-gray-600 mt-1">Your saved choice</p>
+          </button>
 
-        <FormInput
-          label="Coverage Limit (Maximum sum insured)"
-          name="coverageLimit"
-          type="number"
-          step="0.01"
-          value={formData.coverageLimit}
-          onChange={handleChange}
-          placeholder="Enter amount"
-          required
-        />
-
-        <FormInput
-          label="Deductible / Excess"
-          name="deductible"
-          type="number"
-          step="0.01"
-          value={formData.deductible}
-          onChange={handleChange}
-          placeholder="Applicable deductible amount"
-          required
-        />
-      </div>
-
-      <div className="bg-gray-50 p-4 rounded-xl">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Special Conditions / Exclusions (Read-only)
-        </label>
-        <div className="text-sm text-gray-600 space-y-2">
-          <p className="font-semibold">Special Conditions:</p>
-          <ul className="list-disc list-inside ml-2 space-y-1">
-            <li>Required route compliance</li>
-            <li>Mandatory telematics activation</li>
-            <li>Maximum parking time allowed</li>
-            <li>Daytime-only movement</li>
-            <li>Escort requirement for high-value cargo</li>
-          </ul>
-          <p className="font-semibold mt-3">Exclusions:</p>
-          <ul className="list-disc list-inside ml-2 space-y-1">
-            <li>Loss due to war or civil unrest</li>
-            <li>Damage caused by improper packing</li>
-            <li>Movement outside approved routes</li>
-            <li>Use of unverified drivers or trucks</li>
-            <li>Overloading beyond declared weight</li>
-          </ul>
-          <p className="text-xs italic mt-3">
-            These terms are set by the insurer, reinsurer, regulator, and ContainerIQ risk rules and cannot be modified.
-          </p>
+          <button
+            type="button"
+            onClick={() => setInsuranceSelectionMode('all')}
+            className={`p-4 border-2 rounded-xl text-left transition-all ${
+              insuranceSelectionMode === 'all' ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <p className="font-semibold">📊 Compare All</p>
+            <p className="text-sm text-gray-600 mt-1">View all options</p>
+          </button>
         </div>
+
+        {insuranceSelectionMode === 'queue' && (
+          <div className="bg-white border border-gray-200 rounded-xl p-6">
+            {insuranceProviders[0] && (
+              <div className="border-2 border-secondary rounded-lg p-4">
+                <div className="flex items-start gap-4">
+                  <img src={insuranceProviders[0].logo} alt={insuranceProviders[0].name} className="w-16 h-16 rounded-full" />
+                  <div className="flex-1">
+                    <p className="font-bold text-lg">{insuranceProviders[0].name}</p>
+                    <p className="text-sm text-gray-600">Rating: {'⭐'.repeat(Math.floor(insuranceProviders[0].rating))}</p>
+                    <p className="text-sm text-gray-600">Claims: {insuranceProviders[0].claimsSettlementTime}</p>
+                    <p className="text-sm text-gray-600">Premium Rate: {insuranceProviders[0].basePremiumRate}%</p>
+                    <button
+                      type="button"
+                      onClick={() => selectInsurer(insuranceProviders[0].id)}
+                      className="mt-3 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all cursor-pointer"
+                    >
+                      Select This Insurer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {insuranceSelectionMode === 'all' && (
+          <div className="space-y-3">
+            {insuranceProviders.map(insurer => (
+              <div key={insurer.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-4">
+                  <img src={insurer.logo} alt={insurer.name} className="w-12 h-12 rounded-full" />
+                  <div className="flex-1">
+                    <p className="font-semibold">{insurer.name}</p>
+                    <p className="text-sm text-gray-600">
+                      Rate: {insurer.basePremiumRate}% • Claims: {insurer.claimsSettlementTime}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => selectInsurer(insurer.id)}
+                    className="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all cursor-pointer"
+                  >
+                    Select
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {selectedInsurerId && (
+        <>
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <p className="font-semibold text-green-900">✓ Insurer Selected</p>
+            <p className="text-sm text-green-700">
+              {insuranceProviders.find(ins => ins.id === selectedInsurerId)?.name}
+            </p>
+            {formData.calculatedPremium > 0 && (
+              <p className="text-sm text-green-700 font-semibold mt-2">
+                Estimated Premium: ₦{formData.calculatedPremium.toLocaleString()}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormSelect
+              label="Insurance Policy Type"
+              name="insurancePolicyType"
+              value={formData.insurancePolicyType}
+              onChange={handleChange}
+              required
+              options={[
+                { value: '', label: 'Select policy type' },
+                { value: 'marine_cargo', label: 'Marine cargo (inland transit)' },
+                { value: 'all_risk', label: 'All-risk cargo insurance' },
+                { value: 'theft_only', label: 'Theft-only / Limited perils' },
+              ]}
+            />
+
+            <FormSelect
+              label="Coverage Scope"
+              name="coverageScope"
+              value={formData.coverageScope}
+              onChange={handleChange}
+              required
+              options={[
+                { value: '', label: 'Select coverage scope' },
+                { value: 'port_to_port', label: 'Port-to-port' },
+                { value: 'warehouse_to_warehouse', label: 'Warehouse-to-warehouse' },
+                { value: 'port_to_warehouse', label: 'Port-to-warehouse' },
+              ]}
+            />
+
+            <FormInput
+              label="Coverage Limit (Maximum sum insured)"
+              name="coverageLimit"
+              type="number"
+              step="0.01"
+              value={formData.coverageLimit}
+              onChange={handleChange}
+              placeholder="Enter amount"
+              required
+            />
+
+            <FormInput
+              label="Deductible / Excess"
+              name="deductible"
+              type="number"
+              step="0.01"
+              value={formData.deductible}
+              onChange={handleChange}
+              placeholder="Applicable deductible amount"
+              required
+            />
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-xl">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Special Conditions / Exclusions (Read-only)
+            </label>
+            <div className="text-sm text-gray-600 space-y-2">
+              <p className="font-semibold">Special Conditions:</p>
+              <ul className="list-disc list-inside ml-2 space-y-1">
+                <li>Required route compliance</li>
+                <li>Mandatory telematics activation</li>
+                <li>Maximum parking time allowed</li>
+                <li>Daytime-only movement</li>
+                <li>Escort requirement for high-value cargo</li>
+              </ul>
+              <p className="font-semibold mt-3">Exclusions:</p>
+              <ul className="list-disc list-inside ml-2 space-y-1">
+                <li>Loss due to war or civil unrest</li>
+                <li>Damage caused by improper packing</li>
+                <li>Movement outside approved routes</li>
+                <li>Use of unverified drivers or trucks</li>
+                <li>Overloading beyond declared weight</li>
+              </ul>
+              <p className="text-xs italic mt-3">
+                These terms are set by the insurer, reinsurer, regulator, and ContainerIQ risk rules and cannot be modified.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 
-  // Section G: Compliance & Regulatory Data
+  // Section G: Compliance (FIXED: Hazard Declaration as Radio)
   const renderSectionG = () => (
     <div className="space-y-6">
       <div>
@@ -803,22 +1144,39 @@ const NewShipmentPage = () => {
         />
 
         <div className="md:col-span-2">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              name="hazardDeclaration"
-              checked={formData.hazardDeclaration}
-              onChange={handleChange}
-              className="w-4 h-4 text-secondary focus:ring-secondary rounded cursor-pointer"
-            />
-            <span className="ml-2 text-sm text-gray-700">Hazardous cargo declaration</span>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Hazardous Cargo Declaration <span className="text-red-600">*</span>
           </label>
+          <div className="flex gap-4">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="hazardDeclaration"
+                value="yes"
+                checked={formData.hazardDeclaration === 'yes'}
+                onChange={handleChange}
+                className="w-4 h-4 text-secondary focus:ring-secondary cursor-pointer"
+              />
+              <span className="ml-2 text-sm text-gray-700">Yes</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="hazardDeclaration"
+                value="no"
+                checked={formData.hazardDeclaration === 'no'}
+                onChange={handleChange}
+                className="w-4 h-4 text-secondary focus:ring-secondary cursor-pointer"
+              />
+              <span className="ml-2 text-sm text-gray-700">No</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
   );
 
-  // Section H: Telematics & Data Consents
+  // Section H: Telematics Consents (UNCHANGED)
   const renderSectionH = () => (
     <div className="space-y-6">
       <div>
@@ -887,7 +1245,7 @@ const NewShipmentPage = () => {
     </div>
   );
 
-  // Section I: Commercial & Operational Notes
+  // Section I: Commercial Notes (UNCHANGED)
   const renderSectionI = () => (
     <div className="space-y-6">
       <div>
@@ -945,7 +1303,7 @@ const NewShipmentPage = () => {
     </div>
   );
 
-  // Section J: Declaration & Submission
+  // Section J: Declaration (FIXED: Digital Signature)
   const renderSectionJ = () => (
     <div className="space-y-6">
       <div>
@@ -993,7 +1351,7 @@ const NewShipmentPage = () => {
         <FormInput
           label="Digital Signature (Name)"
           name="digitalSignature"
-          value={formData.digitalSignature || user?.fullName || ''}
+          value={formData.digitalSignature}
           onChange={handleChange}
           placeholder="Your full name"
           helperText="Auto-filled from your profile"
@@ -1013,8 +1371,7 @@ const NewShipmentPage = () => {
 
   return (
     <div className="p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <button
             onClick={() => navigate('/dashboard')}
@@ -1031,16 +1388,13 @@ const NewShipmentPage = () => {
           </p>
         </div>
 
-        {/* Step Indicator */}
         {renderStepIndicator()}
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm mb-6">
             {renderStep()}
           </div>
 
-          {/* Navigation Buttons */}
           <div className="flex gap-4">
             {currentStep > 1 && (
               <button

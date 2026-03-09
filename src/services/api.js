@@ -152,6 +152,15 @@ export const api = createApi({
       providesTags: ['Shipper'],
     }),
 
+    // Get all shippers (for dropdown in shipment creation)
+    getAllShippers: builder.query({
+      query: () => ({
+        url: '/shippers',
+        method: 'GET',
+      }),
+      providesTags: ['Shipper'],
+    }),
+
     // Shipper Onboarding - Step 1: Business Classification
     submitShipperBusiness: builder.mutation({
       query: ({ data, isUpdate }) => ({
@@ -304,6 +313,7 @@ export const {
   useGetUserFilesQuery,
   useDeleteFileMutation,
   useGetShipperDetailsQuery,
+  useGetAllShippersQuery,
   useSubmitShipperBusinessMutation,
   useSubmitShipperCargoMutation,
   useSubmitShipperConsentsMutation,

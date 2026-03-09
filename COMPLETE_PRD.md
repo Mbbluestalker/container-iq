@@ -599,8 +599,8 @@ From **Dashboard**, shippers monitor:
 
 | Field | Description | Type |
 |-------|-------------|------|
-| 1. **Shipper Name** | Registered legal name | Auto-filled |
-| 2. **Shipper ID** | Unique shipper identifier | System-generated |
+| 1. **Shipper Name** | Registered legal name | Auto-filled (based on Shipper ID selection) |
+| 2. **Shipper ID** | Select shipper from dropdown of all registered shippers on ContainerIQ | Dropdown, required |
 | 3. **Consignment Reference Number** | Unique ContainerIQ consignment ID | System-generated |
 | 4. **Shipper Internal Reference** | PO number, invoice, internal logistics ref | Optional |
 | 5. **Consignment Creation Date** | Date created | Auto-filled |
