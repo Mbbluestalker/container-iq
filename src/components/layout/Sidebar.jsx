@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import logo from '../../assets/CIQ Logo 1.png';
 
 const menuIcons = {
@@ -70,6 +71,69 @@ const menuIcons = {
       <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
     </svg>
   ),
+  'Shipment Requests': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+    </svg>
+  ),
+  'Active Trips': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+    </svg>
+  ),
+  'Shipment Management': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+    </svg>
+  ),
+  'New Shipment': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+    </svg>
+  ),
+  'My Shipments': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+    </svg>
+  ),
+  'Track Shipments': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+    </svg>
+  ),
+  'Claims': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+    </svg>
+  ),
+  'File Claim': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clipRule="evenodd" />
+    </svg>
+  ),
+  'My Claims': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+    </svg>
+  ),
+  'Insurance Management': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+    </svg>
+  ),
+  'Insured Containers': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+    </svg>
+  ),
+  'Claims Management': (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+    </svg>
+  ),
 };
 
 const menuItems = [
@@ -82,7 +146,37 @@ const menuItems = [
     hasSubmenu: true,
     submenu: [
       { name: 'Drivers', path: '/fleet/drivers' },
-      { name: 'Vehicles', path: '/fleet/vehicles' }
+      { name: 'Vehicles', path: '/fleet/vehicles' },
+      { name: 'Shipment Requests', path: '/fleet/shipment-requests' },
+      { name: 'Active Trips', path: '/fleet/trips' }
+    ]
+  },
+  {
+    name: 'Shipment Management',
+    path: '#',
+    hasSubmenu: true,
+    submenu: [
+      { name: 'New Shipment', path: '/shipper/shipments/new' },
+      { name: 'My Shipments', path: '/shipper/shipments' },
+      { name: 'Track Shipments', path: '/shipper/shipments/track' }
+    ]
+  },
+  {
+    name: 'Claims',
+    path: '#',
+    hasSubmenu: true,
+    submenu: [
+      { name: 'My Claims', path: '/shipper/claims' },
+      { name: 'File Claim', path: '/shipper/claims/new' }
+    ]
+  },
+  {
+    name: 'Insurance Management',
+    path: '#',
+    hasSubmenu: true,
+    submenu: [
+      { name: 'Insured Containers', path: '/insurance/dashboard' },
+      { name: 'Claims Management', path: '/insurance/claims' }
     ]
   },
   { name: 'Scorecards', path: '#', hasSubmenu: false },
@@ -97,7 +191,33 @@ const menuItems = [
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useSelector((state) => state.auth);
   const [expandedMenu, setExpandedMenu] = useState('Fleet Management');
+
+  // Filter menu items based on user type
+  const getFilteredMenuItems = () => {
+    return menuItems.filter(item => {
+      // Only show Fleet Management to fleet_operator users
+      if (item.name === 'Fleet Management') {
+        return user?.userType === 'fleet_operator';
+      }
+      // Only show Shipment Management to shipper users
+      if (item.name === 'Shipment Management') {
+        return user?.userType === 'shipper';
+      }
+      // Only show Claims to shipper users
+      if (item.name === 'Claims') {
+        return user?.userType === 'shipper';
+      }
+      // Only show Insurance Management to insurance_company users
+      if (item.name === 'Insurance Management') {
+        return user?.userType === 'insurance_company';
+      }
+      return true;
+    });
+  };
+
+  const filteredMenuItems = getFilteredMenuItems();
 
   const isActive = (path) => {
     if (path === '#') return false;
@@ -125,7 +245,7 @@ const Sidebar = () => {
 
       {/* Menu Items */}
       <nav className="flex-1 px-3 pt-4 overflow-y-auto">
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <div key={item.name}>
             <button
               onClick={() => handleMenuClick(item)}

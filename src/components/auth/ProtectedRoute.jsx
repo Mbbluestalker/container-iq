@@ -2,12 +2,17 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-const ProtectedRoute = ({ children, requireOnboarding = false }) => {
+const ProtectedRoute = ({ children, requireOnboarding = false, allowedUserTypes = [] }) => {
   const { token, user } = useSelector((state) => state.auth);
 
   // Not authenticated - redirect to login
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check if user type is allowed (if specified)
+  if (allowedUserTypes.length > 0 && user && !allowedUserTypes.includes(user.userType)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Check if onboarding is completed based on user type

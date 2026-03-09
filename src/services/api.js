@@ -268,6 +268,24 @@ export const api = createApi({
       }),
       invalidatesTags: ['Fleet'],
     }),
+
+    // Driver Management - Deactivate Driver
+    deactivateDriver: builder.mutation({
+      query: (id) => ({
+        url: `/drivers/${id}/deactivate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Fleet'],
+    }),
+
+    // Driver Management - Activate Driver
+    activateDriver: builder.mutation({
+      query: (id) => ({
+        url: `/drivers/${id}/activate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Fleet'],
+    }),
   }),
 });
 
@@ -298,4 +316,6 @@ export const {
   useGetDriverByIdQuery,
   useCreateDriverMutation,
   useUpdateDriverMutation,
+  useDeactivateDriverMutation,
+  useActivateDriverMutation,
 } = api;

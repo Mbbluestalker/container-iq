@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { useGetDriversQuery } from '../../services/api';
+import { useGetDriversQuery, useDeactivateDriverMutation, useActivateDriverMutation } from '../../services/api';
+import { useAlert } from '../../context/AlertContext';
+import { useConfirm } from '../../context/ConfirmContext';
 
 const DriversPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const { showSuccess, showError } = useAlert();
+  const { confirm } = useConfirm();
 
   const { user } = useSelector((state) => state.auth);
   const fleetId = user?.fleet?.id;
@@ -16,26 +20,76 @@ const DriversPage = () => {
     skip: !fleetId, // Skip the query if fleetId is not available
   });
 
+  const [deactivateDriver, { isLoading: isDeactivating }] = useDeactivateDriverMutation();
+  const [activateDriver, { isLoading: isActivating }] = useActivateDriverMutation();
+
   const drivers = driversData?.data || [];
+
+  const handleDeactivateDriver = async (e, driverId, driverName) => {
+    e.stopPropagation();
+
+    const confirmed = await confirm({
+      title: 'Deactivate Driver',
+      message: `Are you sure you want to deactivate ${driverName}? This action can be reversed later.`,
+      confirmText: 'Deactivate',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
+
+    if (confirmed) {
+      try {
+        await deactivateDriver(driverId).unwrap();
+        showSuccess('Driver deactivated successfully!');
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to deactivate driver. Please try again.');
+        console.error('Deactivate driver error:', error);
+      }
+    }
+  };
+
+  const handleActivateDriver = async (e, driverId, driverName) => {
+    e.stopPropagation();
+
+    const confirmed = await confirm({
+      title: 'Activate Driver',
+      message: `Are you sure you want to activate ${driverName}?`,
+      confirmText: 'Activate',
+      cancelText: 'Cancel',
+      type: 'info',
+    });
+
+    if (confirmed) {
+      try {
+        await activateDriver(driverId).unwrap();
+        showSuccess('Driver activated successfully!');
+      } catch (error) {
+        showError(error?.data?.message || 'Failed to activate driver. Please try again.');
+        console.error('Activate driver error:', error);
+      }
+    }
+  };
 
   const filteredDrivers = drivers.filter(driver => {
     const matchesSearch = driver.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          driver.licenseNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || driver.status?.toLowerCase() === filterStatus.toLowerCase();
+
+    // Map isActive boolean to status string for filtering
+    const driverStatus = driver.isActive ? 'active' : 'inactive';
+    const matchesFilter = filterStatus === 'all' || driverStatus === filterStatus.toLowerCase();
+
     return matchesSearch && matchesFilter;
   });
 
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'suspended':
-        return 'bg-red-100 text-red-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const getStatusColor = (isActive) => {
+    if (isActive) {
+      return 'bg-green-100 text-green-800';
+    } else {
+      return 'bg-red-100 text-red-800';
     }
+  };
+
+  const getStatusText = (isActive) => {
+    return isActive ? 'Active' : 'Inactive';
   };
 
 
@@ -135,7 +189,7 @@ const DriversPage = () => {
               <p className="text-sm font-semibold text-gray-600">Active</p>
             </div>
             <p className="text-3xl font-bold text-secondary">
-              {drivers.filter(d => (d.status || 'Active') === 'Active').length}
+              {drivers.filter(d => d.isActive === true).length}
             </p>
           </div>
           <div className="bg-gradient-to-br from-primary/5 via-purple-50 to-white p-6 rounded-xl border border-primary/20 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
@@ -148,7 +202,7 @@ const DriversPage = () => {
               <p className="text-sm font-semibold text-gray-600">Available</p>
             </div>
             <p className="text-3xl font-bold text-purple-600">
-              {drivers.filter(d => !d.assignedTruck && (d.status || 'Active') === 'Active').length}
+              {drivers.filter(d => !d.assignedTruck && d.isActive === true).length}
             </p>
           </div>
         </div>
@@ -238,23 +292,48 @@ const DriversPage = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(driver.status || 'Active')}`}>
-                        {driver.status || 'Active'}
+                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(driver.isActive)}`}>
+                        {getStatusText(driver.isActive)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/fleet/drivers/${driver._id || driver.id}`);
-                        }}
-                        className="inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-secondary to-secondary/90 hover:from-secondary/90 hover:to-secondary rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.05]"
-                      >
-                        <span>View</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/fleet/drivers/${driver._id || driver.id}`);
+                          }}
+                          className="inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-secondary to-secondary/90 hover:from-secondary/90 hover:to-secondary rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.05]"
+                        >
+                          <span>View</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        {driver.isActive ? (
+                          <button
+                            onClick={(e) => handleDeactivateDriver(e, driver._id || driver.id, driver.fullName)}
+                            disabled={isDeactivating}
+                            className="inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.05] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            <span>Deactivate</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => handleActivateDriver(e, driver._id || driver.id, driver.fullName)}
+                            disabled={isActivating}
+                            className="inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.05] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Activate</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
