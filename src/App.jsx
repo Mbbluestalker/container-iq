@@ -9,6 +9,8 @@ import LoginPage from './pages/LoginPage';
 import InsuranceOnboardingPage from './pages/onboarding/InsuranceOnboardingPage';
 import ShipperOnboardingPage from './pages/onboarding/ShipperOnboardingPage';
 import FleetOnboardingPage from './pages/onboarding/FleetOnboardingPage';
+import ShippingCompanyOnboardingPage from './pages/onboarding/ShippingCompanyOnboardingPage';
+import TerminalOperatorOnboardingPage from './pages/onboarding/TerminalOperatorOnboardingPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import DriversPage from './pages/fleet/DriversPage';
 import DriverFormPage from './pages/fleet/DriverFormPage';
@@ -28,6 +30,15 @@ import InsuranceDashboardPage from './pages/insurance/InsuranceDashboardPage';
 import ContainerDetailPage from './pages/insurance/ContainerDetailPage';
 import InsuranceClaimsPage from './pages/insurance/InsuranceClaimsPage';
 import ProcessClaimPage from './pages/insurance/ProcessClaimPage';
+import RoutesPage from './pages/admin/RoutesPage';
+import RouteFormPage from './pages/admin/RouteFormPage';
+import RouteDetailPage from './pages/admin/RouteDetailPage';
+import DevicesPage from './pages/admin/DevicesPage';
+import DeviceDetailPage from './pages/admin/DeviceDetailPage';
+import DeviceFormPage from './pages/admin/DeviceFormPage';
+import ScorecardsPage from './pages/admin/ScorecardsPage';
+import ScorecardDetailPage from './pages/admin/ScorecardDetailPage';
+import ScoreboardLeaderboardPage from './pages/admin/ScoreboardLeaderboardPage';
 
 const App = () => {
   return (
@@ -58,6 +69,22 @@ const App = () => {
           element={
             <ProtectedRoute>
               <FleetOnboardingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/onboarding/shipping-company"
+          element={
+            <ProtectedRoute>
+              <ShippingCompanyOnboardingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/onboarding/terminal-operator"
+          element={
+            <ProtectedRoute>
+              <TerminalOperatorOnboardingPage />
             </ProtectedRoute>
           }
         />
@@ -275,6 +302,118 @@ const App = () => {
             <ProtectedRoute requireOnboarding={true} allowedUserTypes={['insurance_company']}>
               <Layout>
                 <ProcessClaimPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Routes - For route management and device management */}
+        <Route
+          path="/admin/routes"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <RoutesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/routes/new"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <RouteFormPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/routes/:id"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <RouteDetailPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/routes/:id/edit"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <RouteFormPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/devices"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <DevicesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/devices/new"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <DeviceFormPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/devices/:id"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <DeviceDetailPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/devices/:id/edit"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <DeviceFormPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/scorecards"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <ScorecardsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/scorecards/leaderboard"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <ScoreboardLeaderboardPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/scorecards/:id"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <ScorecardDetailPage />
               </Layout>
             </ProtectedRoute>
           }

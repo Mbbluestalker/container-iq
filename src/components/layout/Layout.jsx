@@ -7,7 +7,7 @@ const Layout = ({ children }) => {
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       <TopBar />
-      <main className="ml-56 pt-24">
+      <main className="ml-56 pt-24 pr-8 pb-8 pl-8">
         {children}
       </main>
     </div>

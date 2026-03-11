@@ -134,12 +134,20 @@ const menuIcons = {
       <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
     </svg>
   ),
+  'Route Management': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+    </svg>
+  ),
+  'Device Management': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    </svg>
+  ),
 };
 
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', hasSubmenu: false },
-  { name: 'Marine Telematics', path: '#', hasSubmenu: false },
-  { name: 'Inland Telematics', path: '#', hasSubmenu: false },
   {
     name: 'Fleet Management',
     path: '#',
@@ -179,13 +187,9 @@ const menuItems = [
       { name: 'Claims Management', path: '/insurance/claims' }
     ]
   },
-  { name: 'Scorecards', path: '#', hasSubmenu: false },
-  { name: 'Compliance', path: '#', hasSubmenu: false },
-  { name: 'Evidence Vault', path: '#', hasSubmenu: false },
-  { name: "API's & Integrations", path: '#', hasSubmenu: false },
-  { name: 'Users & Roles', path: '#', hasSubmenu: false },
-  { name: 'Alerts', path: '#', hasSubmenu: false },
-  { name: 'Settings', path: '#', hasSubmenu: false },
+  { name: 'Route Management', path: '/admin/routes', hasSubmenu: false },
+  { name: 'Device Management', path: '/admin/devices', hasSubmenu: false },
+  { name: 'Scorecards', path: '/admin/scorecards', hasSubmenu: false },
 ];
 
 const Sidebar = () => {
