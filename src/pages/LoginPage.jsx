@@ -78,11 +78,89 @@ const LoginPage = () => {
     return '/dashboard';
   };
 
+  // Demo users for user types without backend support yet
+  const DEMO_USERS = {
+    'shipping@demo.com': {
+      password: 'demo123',
+      userData: {
+        id: 'DEMO-SHIPPING-001',
+        email: 'shipping@demo.com',
+        userType: 'shipping_company',
+        formCompleted: 3,
+        shippingFormCompleted: 4,
+        profile: {
+          fullName: 'Maersk Line Demo',
+          phoneNumber: '+234-800-000-0001',
+        },
+        organization: {
+          legalEntityName: 'Maersk Line Nigeria',
+          cacRegistrationNumber: 'RC-DEMO-001',
+        },
+      },
+    },
+    'terminal@demo.com': {
+      password: 'demo123',
+      userData: {
+        id: 'DEMO-TERMINAL-001',
+        email: 'terminal@demo.com',
+        userType: 'terminal_operator',
+        formCompleted: 3,
+        terminalFormCompleted: 4,
+        profile: {
+          fullName: 'Apapa Terminal Demo',
+          phoneNumber: '+234-800-000-0002',
+        },
+        organization: {
+          legalEntityName: 'Apapa Port Terminal',
+          cacRegistrationNumber: 'RC-DEMO-002',
+        },
+      },
+    },
+    'admin@demo.com': {
+      password: 'demo123',
+      userData: {
+        id: 'DEMO-ADMIN-001',
+        email: 'admin@demo.com',
+        userType: 'super_admin',
+        formCompleted: 3,
+        profile: {
+          fullName: 'Tsaron Tech Admin',
+          phoneNumber: '+234-800-000-0003',
+        },
+        organization: {
+          legalEntityName: 'Tsaron Tech Back Office',
+          cacRegistrationNumber: 'RC-DEMO-003',
+        },
+      },
+    },
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
 
     if (Object.keys(newErrors).length === 0) {
+      // Check if this is a demo user
+      const demoUser = DEMO_USERS[formData.email.toLowerCase()];
+
+      if (demoUser && formData.password === demoUser.password) {
+        // Demo login - bypass API
+        const userData = demoUser.userData;
+
+        dispatch(setCredentials({
+          token: 'DEMO-TOKEN-' + Date.now(),
+          user: userData,
+        }));
+
+        showSuccess('Demo Login successful! Redirecting...');
+
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1000);
+        return;
+      }
+
+      // Real API login for backend-supported user types
       try {
         const response = await login(formData).unwrap();
 
@@ -264,6 +342,28 @@ const LoginPage = () => {
                 Sign up
               </Link>
             </p>
+
+            {/* Demo Credentials Section */}
+            <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3">Demo Accounts (Password: demo123)</h3>
+              <div className="space-y-2 text-xs text-blue-800">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Shipping Company:</span>
+                  <code className="bg-white px-2 py-1 rounded">shipping@demo.com</code>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Terminal Operator:</span>
+                  <code className="bg-white px-2 py-1 rounded">terminal@demo.com</code>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Super Admin:</span>
+                  <code className="bg-white px-2 py-1 rounded">admin@demo.com</code>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600 mt-3 italic">
+                * Use these credentials to preview different user dashboards
+              </p>
+            </div>
           </div>
         </div>
       </div>

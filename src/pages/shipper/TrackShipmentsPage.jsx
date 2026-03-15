@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import LiveTelematicsMap from '../../components/telematics/LiveTelematicsMap';
+import RealTimeDeviceStatus from '../../components/telematics/RealTimeDeviceStatus';
+import GeofenceAlerts from '../../components/telematics/GeofenceAlerts';
 
 const TrackShipmentsPage = () => {
   const navigate = useNavigate();
@@ -137,25 +140,13 @@ const TrackShipmentsPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Map and Status */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Map Placeholder */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gray-100 h-96 flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5"></div>
-                <div className="relative text-center">
-                  <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-sm font-medium text-gray-600">Live GPS Tracking Map</p>
-                  <p className="text-xs text-gray-500 mt-1">Map integration with Google Maps API</p>
-                  {selectedShipment.status === 'In Transit' && (
-                    <div className="mt-4">
-                      <p className="text-lg font-bold text-gray-900">{selectedShipment.currentLocation}</p>
-                      <p className="text-sm text-gray-600">Last updated: {selectedShipment.lastUpdate}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Live Telematics Map */}
+            <LiveTelematicsMap shipmentData={selectedShipment} />
+
+            {/* Geofence Alerts */}
+            {selectedShipment.status === 'In Transit' && (
+              <GeofenceAlerts shipmentData={selectedShipment} />
+            )}
 
             {/* Progress and Route */}
             {selectedShipment.status === 'In Transit' && (
@@ -274,41 +265,8 @@ const TrackShipmentsPage = () => {
                   </div>
                 </div>
 
-                {/* Telematics Status */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Telematics Status</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <svg className={`w-5 h-5 ${selectedShipment.sealStatus === 'Intact' ? 'text-green-600' : 'text-red-600'}`} fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-sm font-medium text-gray-900">Container Seal</span>
-                      </div>
-                      <span className={`text-sm font-semibold ${selectedShipment.sealStatus === 'Intact' ? 'text-green-600' : 'text-red-600'}`}>
-                        {selectedShipment.sealStatus}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-sm font-medium text-gray-900">GPS Status</span>
-                      </div>
-                      <span className="text-sm font-semibold text-green-600">{selectedShipment.gpsStatus}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
-                        </svg>
-                        <span className="text-sm font-medium text-gray-900">Battery Level</span>
-                      </div>
-                      <span className="text-sm font-semibold text-blue-600">{selectedShipment.batteryLevel}%</span>
-                    </div>
-                  </div>
-                </div>
+                {/* Real-Time Device Status */}
+                <RealTimeDeviceStatus shipmentData={selectedShipment} />
 
                 {/* Alerts */}
                 {selectedShipment.alerts && selectedShipment.alerts.length > 0 && (

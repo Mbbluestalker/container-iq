@@ -144,6 +144,53 @@ const menuIcons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
     </svg>
   ),
+  'My Custody': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  ),
+  'My Scorecard': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+    </svg>
+  ),
+  'Gate Operations': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+    </svg>
+  ),
+  'Yard Management': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  ),
+  'Terminal Custody': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  ),
+  'Terminal Scorecard': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+    </svg>
+  ),
+  'Device Lifecycle': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  ),
+  'Regulatory Reporting': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  'Real-Time Telematics': (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
 };
 
 const menuItems = [
@@ -187,9 +234,22 @@ const menuItems = [
       { name: 'Claims Management', path: '/insurance/claims' }
     ]
   },
+  // Admin-only features
   { name: 'Route Management', path: '/admin/routes', hasSubmenu: false },
   { name: 'Device Management', path: '/admin/devices', hasSubmenu: false },
+  { name: 'Device Lifecycle', path: '/admin/device-lifecycle', hasSubmenu: false },
+  { name: 'Real-Time Telematics', path: '/admin/telematics', hasSubmenu: false },
+  { name: 'Regulatory Reporting', path: '/admin/regulatory-reporting', hasSubmenu: false },
+  { name: 'Evidence Vault', path: '/admin/evidence-vault', hasSubmenu: false },
   { name: 'Scorecards', path: '/admin/scorecards', hasSubmenu: false },
+  // Shipping Company features
+  { name: 'My Custody', path: '/shipping/custody', hasSubmenu: false },
+  { name: 'My Scorecard', path: '/shipping/scorecard', hasSubmenu: false },
+  // Terminal Operator features
+  { name: 'Gate Operations', path: '/terminal/gate', hasSubmenu: false },
+  { name: 'Yard Management', path: '/terminal/yard', hasSubmenu: false },
+  { name: 'Terminal Custody', path: '/terminal/custody', hasSubmenu: false },
+  { name: 'Terminal Scorecard', path: '/terminal/scorecard', hasSubmenu: false },
 ];
 
 const Sidebar = () => {
@@ -217,6 +277,39 @@ const Sidebar = () => {
       if (item.name === 'Insurance Management') {
         return user?.userType === 'insurance_company';
       }
+      // Route Management - ONLY super_admin has access
+      if (item.name === 'Route Management') {
+        return user?.userType === 'super_admin';
+      }
+      // Device Management - ONLY super_admin has full access
+      if (item.name === 'Device Management') {
+        return user?.userType === 'super_admin';
+      }
+      // Device Lifecycle - ONLY super_admin has access
+      if (item.name === 'Device Lifecycle') {
+        return user?.userType === 'super_admin';
+      }
+      // Regulatory Reporting - ONLY super_admin has access
+      if (item.name === 'Regulatory Reporting') {
+        return user?.userType === 'super_admin';
+      }
+      // Evidence Vault - ONLY super_admin has access
+      if (item.name === 'Evidence Vault') {
+        return user?.userType === 'super_admin';
+      }
+      // Scorecards - ONLY super_admin has access to all scorecards
+      if (item.name === 'Scorecards') {
+        return user?.userType === 'super_admin';
+      }
+      // Shipping Company specific features
+      if (item.name === 'My Custody' || item.name === 'My Scorecard') {
+        return user?.userType === 'shipping_company';
+      }
+      // Terminal Operator specific features
+      if (item.name === 'Gate Operations' || item.name === 'Yard Management' ||
+          item.name === 'Terminal Custody' || item.name === 'Terminal Scorecard') {
+        return user?.userType === 'terminal_operator';
+      }
       return true;
     });
   };
@@ -225,7 +318,9 @@ const Sidebar = () => {
 
   const isActive = (path) => {
     if (path === '#') return false;
-    return location.pathname === path || location.pathname.startsWith(path);
+    // For exact match on submenu items, check if it's an exact path match
+    // This prevents /shipper/shipments from being active when on /shipper/shipments/new
+    return location.pathname === path;
   };
 
   const handleMenuClick = (item) => {
@@ -253,15 +348,17 @@ const Sidebar = () => {
           <div key={item.name}>
             <button
               onClick={() => handleMenuClick(item)}
-              className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all duration-200 cursor-pointer ${
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg mb-1 transition-all duration-200 cursor-pointer ${
                 isActive(item.path)
                   ? 'bg-gradient-to-r from-secondary/30 to-secondary/20 text-white shadow-sm border border-secondary/30'
                   : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
-              <div className="flex items-center gap-3">
-                {menuIcons[item.name]}
-                <span className="text-xs font-medium">{item.name}</span>
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex-shrink-0">
+                  {menuIcons[item.name]}
+                </div>
+                <span className="text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis">{item.name}</span>
               </div>
               {item.hasSubmenu && (
                 <svg
@@ -282,14 +379,16 @@ const Sidebar = () => {
                   <button
                     key={subItem.name}
                     onClick={() => handleSubmenuClick(subItem.path)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-1 transition-all duration-200 cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all duration-200 cursor-pointer ${
                       isActive(subItem.path)
                         ? 'bg-gradient-to-r from-secondary/30 to-secondary/20 text-white shadow-sm border border-secondary/30'
                         : 'text-white/70 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    {menuIcons[subItem.name]}
-                    <span className="text-xs font-medium">{subItem.name}</span>
+                    <div className="flex-shrink-0">
+                      {menuIcons[subItem.name]}
+                    </div>
+                    <span className="text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis">{subItem.name}</span>
                   </button>
                 ))}
               </div>
@@ -300,16 +399,18 @@ const Sidebar = () => {
 
       {/* Logout */}
       <div className="p-3 border-t border-white/10">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-white/70 hover:bg-red-500/20 hover:text-white rounded-lg transition-all duration-200 cursor-pointer">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-            />
-          </svg>
-          <span className="text-xs font-medium">Log out</span>
+        <button className="w-full flex items-center gap-2 px-3 py-2.5 text-white/70 hover:bg-red-500/20 hover:text-white rounded-lg transition-all duration-200 cursor-pointer">
+          <div className="flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+          </div>
+          <span className="text-xs font-medium whitespace-nowrap">Log out</span>
         </button>
       </div>
     </aside>

@@ -32,7 +32,12 @@ const ProtectedRoute = ({ children, requireOnboarding = false, allowedUserTypes 
         return user.shipperFormCompleted === 4;
       case 'fleet_operator':
         return user.fleetFormCompleted === 3;
-      // Add other user types when their onboarding is ready
+      case 'shipping_company':
+        return user.shippingFormCompleted === 4;
+      case 'terminal_operator':
+        return user.terminalFormCompleted === 4;
+      case 'super_admin':
+        return true; // Super admin doesn't need additional onboarding
       default:
         return true; // For user types without specific onboarding yet
     }

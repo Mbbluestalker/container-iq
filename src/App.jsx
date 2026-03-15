@@ -26,6 +26,8 @@ import MyShipmentsPage from './pages/shipper/MyShipmentsPage';
 import TrackShipmentsPage from './pages/shipper/TrackShipmentsPage';
 import ClaimsPage from './pages/shipper/ClaimsPage';
 import FileClaimPage from './pages/shipper/FileClaimPage';
+import PaymentPage from './pages/shipper/PaymentPage';
+import PaymentSuccessPage from './pages/shipper/PaymentSuccessPage';
 import InsuranceDashboardPage from './pages/insurance/InsuranceDashboardPage';
 import ContainerDetailPage from './pages/insurance/ContainerDetailPage';
 import InsuranceClaimsPage from './pages/insurance/InsuranceClaimsPage';
@@ -39,6 +41,16 @@ import DeviceFormPage from './pages/admin/DeviceFormPage';
 import ScorecardsPage from './pages/admin/ScorecardsPage';
 import ScorecardDetailPage from './pages/admin/ScorecardDetailPage';
 import ScoreboardLeaderboardPage from './pages/admin/ScoreboardLeaderboardPage';
+import DeviceLifecyclePage from './pages/admin/DeviceLifecyclePage';
+import RegulatoryReportingPage from './pages/admin/RegulatoryReportingPage';
+import EvidenceVaultPage from './pages/admin/EvidenceVaultPage';
+import RealTimeTelematicsDashboard from './pages/admin/RealTimeTelematicsDashboard';
+import ShippingCustodyPage from './pages/shipping/ShippingCustodyPage';
+import ShippingScorecardPage from './pages/shipping/ShippingScorecardPage';
+import GateOperationsPage from './pages/terminal/GateOperationsPage';
+import YardManagementPage from './pages/terminal/YardManagementPage';
+import TerminalCustodyPage from './pages/terminal/TerminalCustodyPage';
+import TerminalScorecardPage from './pages/terminal/TerminalScorecardPage';
 
 const App = () => {
   return (
@@ -264,6 +276,26 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/shipper/payment"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['shipper']}>
+              <Layout>
+                <PaymentPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shipper/payment/success"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['shipper']}>
+              <Layout>
+                <PaymentSuccessPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Insurance Company Routes - Only for insurance_company */}
         <Route
@@ -302,6 +334,70 @@ const App = () => {
             <ProtectedRoute requireOnboarding={true} allowedUserTypes={['insurance_company']}>
               <Layout>
                 <ProcessClaimPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Shipping Company Routes - Only for shipping_company */}
+        <Route
+          path="/shipping/custody"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['shipping_company']}>
+              <Layout>
+                <ShippingCustodyPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shipping/scorecard"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['shipping_company']}>
+              <Layout>
+                <ShippingScorecardPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Terminal Operator Routes - Only for terminal_operator */}
+        <Route
+          path="/terminal/gate"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['terminal_operator']}>
+              <Layout>
+                <GateOperationsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/terminal/yard"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['terminal_operator']}>
+              <Layout>
+                <YardManagementPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/terminal/custody"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['terminal_operator']}>
+              <Layout>
+                <TerminalCustodyPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/terminal/scorecard"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['terminal_operator']}>
+              <Layout>
+                <TerminalScorecardPage />
               </Layout>
             </ProtectedRoute>
           }
@@ -414,6 +510,46 @@ const App = () => {
             <ProtectedRoute requireOnboarding={true}>
               <Layout>
                 <ScorecardDetailPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/device-lifecycle"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['super_admin']}>
+              <Layout>
+                <DeviceLifecyclePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/regulatory-reporting"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['super_admin']}>
+              <Layout>
+                <RegulatoryReportingPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/evidence-vault"
+          element={
+            <ProtectedRoute requireOnboarding={true} allowedUserTypes={['super_admin']}>
+              <Layout>
+                <EvidenceVaultPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/telematics"
+          element={
+            <ProtectedRoute requireOnboarding={true}>
+              <Layout>
+                <RealTimeTelematicsDashboard />
               </Layout>
             </ProtectedRoute>
           }
